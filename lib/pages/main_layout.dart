@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:bottom_navy_bar/bottom_navy_bar.dart';
 import 'package:road_supervisor/pages/map_page.dart';
+import 'package:road_supervisor/pages/my_account.dart';
+
+import 'settings.dart';
 
 class MainLayout extends StatefulWidget {
   MainLayout({Key? key}) : super(key: key);
@@ -64,15 +67,11 @@ class _MainLayoutState extends State<MainLayout> {
           },
           children: <Widget>[
             MapPage(),
-            Container(
-              color: Colors.red,
-            ),
+            MyAccoutWidget(),
             Container(
               color: Colors.green,
             ),
-            Container(
-              color: Colors.blue,
-            ),
+            MySettingsWidget(),
           ],
         ),
       ),
