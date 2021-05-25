@@ -3,6 +3,8 @@
    <application
         android:label="road_supervisor"
         android:icon="@mipmap/ic_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyCH_RnECAXKBtP5WMZK2md9XgHydRhno0E"/>
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"
