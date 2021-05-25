@@ -1,11 +1,13 @@
 import 'dart:async';
 
-import 'package:fab_circular_menu/fab_circular_menu.dart';
+import 'package:flutter_switch/flutter_switch.dart';
+import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:ndialog/ndialog.dart';
 
 class MapPage extends StatefulWidget {
   MapPage({Key? key}) : super(key: key);
@@ -28,6 +30,20 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   List<LocationData> locations = [];
   final Set<Polyline> _polyline = {};
 
+  List<MapType> mapTypes = [
+    MapType.normal,
+    MapType.satellite,
+    MapType.hybrid,
+    MapType.terrain
+  ];
+  int currentMapType = 0;
+  List<String> mapTypeDropdownItems = [
+    "Normal",
+    "Satellite",
+    "Hybrid",
+    "Terrain"
+  ];
+  bool trafficEnabled = false;
   @override
   void initState() {
     super.initState();
@@ -120,7 +136,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       child: GoogleMap(
         markers: Set<Marker>.of(markers.values),
         polylines: _polyline,
-        mapType: MapType.hybrid,
+        mapType: mapTypes[currentMapType],
+        trafficEnabled: trafficEnabled,
         initialCameraPosition: CameraPosition(
           target: LatLng(_locationData.latitude, _locationData.longitude),
           zoom: 20,
@@ -132,32 +149,82 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  buildFloatingActionButton() {
-    return FabCircularMenu(
-      children: <Widget>[
-        IconButton(
-            icon: Icon(Icons.map_outlined),
-            onPressed: () {
-              print('Home');
-            }),
-        IconButton(
-            icon: Icon(Icons.control_point_duplicate_outlined),
-            onPressed: () {
-              print('Favorite');
-            }),
-        IconButton(
-            icon: Icon(Icons.camera_alt),
-            onPressed: () {
-              print('video');
-            })
-      ],
-      alignment: Alignment.centerRight,
-      ringWidth: 100,
-      ringDiameter: 250,
-    );
-  }
+  final Widget normalChildButton = SizedBox(
+    width: 93,
+    height: 40,
+    child: Padding(
+      padding: const EdgeInsets.only(left: 16, right: 11),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Flexible(child: Text("Map Type", overflow: TextOverflow.ellipsis)),
+          const SizedBox(
+            width: 12,
+            height: 17,
+            child: FittedBox(
+              fit: BoxFit.fill,
+              child: Icon(
+                Icons.arrow_drop_down,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
-  bool isFloatingOpen = false;
+  buildMapSettingsPopup() async {
+    await NDialog(
+      dialogStyle: DialogStyle(titleDivider: true),
+      title: Text("Map Settings"),
+      content: Container(
+        height: MediaQuery.of(context).size.height / 2,
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text("Map Type"),
+                MenuButton(
+                  child: normalChildButton,
+                  items: mapTypeDropdownItems,
+                  itemBuilder: (String value) => Container(
+                    height: 40,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 0.0, horizontal: 5),
+                    child: Text(value),
+                  ),
+                  toggledChild: Container(
+                    child: normalChildButton,
+                  ),
+                  onItemSelected: (String value) {
+                    setState(() {
+                      currentMapType = mapTypeDropdownItems.indexOf(value);
+                    });
+                  },
+                )
+              ],
+            ),
+            Row(
+              children: [
+                Text("Traffic "),
+                FlutterSwitch(
+                    value: trafficEnabled,
+                    onToggle: (_) {
+                      setState(() {
+                        trafficEnabled = !trafficEnabled;
+                        Navigator.pop(context);
+                      });
+                    })
+              ],
+            ),
+          ],
+        ),
+      ),
+    ).show(context, transitionType: DialogTransitionType.Bubble);
+  }
 
   buildFloatingBox() {
     return FloatingMenuPanel(
@@ -184,7 +251,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       borderWidth: 1.0, // Width of panel border
       borderColor: Colors.black, // Color of panel border
       onPressed: (index) {
-        print("Clicked on item: $index");
+        if (index == 0) buildMapSettingsPopup();
       },
       buttons: [
         Icons.map_outlined,
@@ -198,9 +265,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     return Scaffold(
       body: Stack(
         children: [
-          Expanded(
-            child: gotData ? buildMap() : Text("Fetching location ! "),
-          ),
+          gotData ? buildMap() : Text("Fetching location ! "),
           buildFloatingBox(),
         ],
       ),
