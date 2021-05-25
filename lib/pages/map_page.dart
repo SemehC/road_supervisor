@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:fab_circular_menu/fab_circular_menu.dart';
+import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -21,7 +23,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
   int _markerIdCounter = 1;
   bool gotData = false;
-  double minLocationDistance = 5.0;
+  double minLocationDistance = 1.0;
 
   List<LocationData> locations = [];
   final Set<Polyline> _polyline = {};
@@ -59,11 +61,19 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
     location.onLocationChanged.listen((LocationData currentLocation) {
       locations.add(currentLocation);
-      if (locations.length > 1)
+      if (locations.length > 1) {
+        Fluttertoast.showToast(
+            msg:
+                "Locations : ${locations[locations.length - 1]} ; ${locations[locations.length]}");
         _addPolyline(
-          locations[locations.length - 1],
-          locations[locations.length - 1],
+          LatLng(locations[locations.length - 1].latitude,
+              locations[locations.length - 1].longitude),
+          LatLng(locations[locations.length].latitude,
+              locations[locations.length].longitude),
         );
+      }
+
+      print(currentLocation);
     });
 
     setState(() {
@@ -72,10 +82,10 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     });
   }
 
-  _addPolyline(LocationData pos1, LocationData pos2) {
+  _addPolyline(LatLng pos1, LatLng pos2) {
     List<LatLng> latlng = [];
-    latlng.add(LatLng(pos1.latitude, pos1.longitude));
-    latlng.add(LatLng(pos2.latitude, pos2.longitude));
+    latlng.add(pos1);
+    latlng.add(pos2);
     _polyline.add(Polyline(
       polylineId: PolylineId("Route"),
       visible: true,
@@ -122,10 +132,78 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     );
   }
 
+  buildFloatingActionButton() {
+    return FabCircularMenu(
+      children: <Widget>[
+        IconButton(
+            icon: Icon(Icons.map_outlined),
+            onPressed: () {
+              print('Home');
+            }),
+        IconButton(
+            icon: Icon(Icons.control_point_duplicate_outlined),
+            onPressed: () {
+              print('Favorite');
+            }),
+        IconButton(
+            icon: Icon(Icons.camera_alt),
+            onPressed: () {
+              print('video');
+            })
+      ],
+      alignment: Alignment.centerRight,
+      ringWidth: 100,
+      ringDiameter: 250,
+    );
+  }
+
+  bool isFloatingOpen = false;
+
+  buildFloatingBox() {
+    return FloatingMenuPanel(
+      positionTop: 0.0, // Initial Top Position
+      positionLeft: 0.0, // Initial Left Position
+      backgroundColor: Color(0xFFEDEDED), // Color of the panel
+      contentColor: Colors.black, // Color of the icons
+      borderRadius: BorderRadius.circular(8.0), // Border radius of the panel
+      dockType: DockType
+          .inside, // 'DockType.inside' or 'DockType.outside', weather to dock the panel outside or inside the edge of the screen
+      dockOffset:
+          5.0, // Offset the dock from the edge depending on the 'dockType' property
+      panelAnimDuration: 300, // Duration for panel open and close animation
+      panelAnimCurve:
+          Curves.easeOut, // Curve for panel open and close animation
+      dockAnimDuration:
+          100, // Auto dock to the edge of screen - animation duration
+      dockAnimCurve: Curves.easeOut, // Auto dock animation curve
+      panelOpenOffset:
+          20.0, // Offset from the edge of screen when panel is open
+      panelIcon: Icons.menu, // Panel open/close icon
+      size: 70.0, // Size of single button in the panel
+      iconSize: 24.0, // Size of icons
+      borderWidth: 1.0, // Width of panel border
+      borderColor: Colors.black, // Color of panel border
+      onPressed: (index) {
+        print("Clicked on item: $index");
+      },
+      buttons: [
+        Icons.map_outlined,
+        Icons.camera_alt,
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: gotData ? buildMap() : Text("Fetching location ! "),
+    return Scaffold(
+      body: Stack(
+        children: [
+          Expanded(
+            child: gotData ? buildMap() : Text("Fetching location ! "),
+          ),
+          buildFloatingBox(),
+        ],
+      ),
     );
   }
 
