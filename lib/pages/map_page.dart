@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:math';
 
-import 'package:fab_circular_menu/fab_circular_menu.dart';
+import 'package:flutter_switch/flutter_switch.dart';
+import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:ndialog/ndialog.dart';
 
 class MapPage extends StatefulWidget {
   MapPage({Key? key}) : super(key: key);
@@ -15,28 +18,85 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
+  //Location service
   Location location = new Location();
+  //Location service enabled
   late bool _serviceEnabled;
+  //Permissions check
   late PermissionStatus _permissionGranted;
+  //Location data
   late LocationData _locationData;
-
+  //Google map Controller
+  late GoogleMapController _googleMapController;
+  //Map markers
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
-  int _markerIdCounter = 1;
+  //Fetched locations status
   bool gotData = false;
-  double minLocationDistance = 1.0;
+  //Minimum location distance change
+  double minLocationDistance = 5.0;
 
-  List<LocationData> locations = [];
-  final Set<Polyline> _polyline = {};
+  //Map Polylines
+  Set<Polyline> _polyline = {};
+  //Current polyline points
+  List<LatLng> currentPoints = [];
 
+  //Google map map types
+  List<MapType> mapTypes = [
+    MapType.normal,
+    MapType.satellite,
+    MapType.hybrid,
+    MapType.terrain
+  ];
+  //Initial map type
+  int currentMapType = 0;
+  //Map type dropdown
+  List<String> mapTypeDropdownItems = [
+    "Normal",
+    "Satellite",
+    "Hybrid",
+    "Terrain"
+  ];
+  //Traffic enabled status
+  bool trafficEnabled = false;
   @override
   void initState() {
     super.initState();
     initializeLocation();
   }
 
+  _addNewPolyline({int type = 0}) {
+    int id = _polyline.length;
+    if (type == 0) {
+      _polyline.add(Polyline(
+        polylineId: PolylineId("${id + 1}"),
+        visible: true,
+        points: currentPoints,
+        color: Colors.blue,
+      ));
+    }
+    if (type == 1) {
+      _polyline.add(Polyline(
+        polylineId: PolylineId("${id + 1}"),
+        visible: true,
+        points: currentPoints,
+        color: Colors.orange,
+      ));
+    }
+    if (type == 2) {
+      _polyline.add(Polyline(
+        polylineId: PolylineId("${id + 1}"),
+        visible: true,
+        points: currentPoints,
+        color: Colors.red,
+      ));
+    }
+  }
+
+  LatLng? prevPos = null;
+  int currRoadType = 0;
   initializeLocation() async {
     // ignore: deprecated_member_use
-
+    var rng = new Random();
     _serviceEnabled = await location.serviceEnabled();
     if (!_serviceEnabled) {
       _serviceEnabled = await location.requestService();
@@ -53,46 +113,67 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       }
     }
     _locationData = await location.getLocation();
-    locations.add(_locationData);
+    prevPos = LatLng(_locationData.latitude, _locationData.longitude);
     location.changeSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: minLocationDistance,
     );
 
     location.onLocationChanged.listen((LocationData currentLocation) {
-      locations.add(currentLocation);
-      if (locations.length > 1) {
-        Fluttertoast.showToast(
-            msg:
-                "Locations : ${locations[locations.length - 1]} ; ${locations[locations.length]}");
-        _addPolyline(
-          LatLng(locations[locations.length - 1].latitude,
-              locations[locations.length - 1].longitude),
-          LatLng(locations[locations.length].latitude,
-              locations[locations.length].longitude),
-        );
-      }
+      LatLng currPos = LatLng(
+        currentLocation.latitude,
+        currentLocation.longitude,
+      );
 
-      print(currentLocation);
+      int x = rng.nextInt(3);
+
+      if (x == 0) {
+        if (currRoadType != 0) {
+          currentPoints = [];
+          currentPoints.add(prevPos!);
+          _addNewPolyline(type: 0);
+          currRoadType = 0;
+        }
+        currentPoints.add(currPos);
+      }
+      if (x == 1) {
+        if (currRoadType != 1) {
+          currentPoints = [];
+          currentPoints.add(prevPos!);
+          _addNewPolyline(type: 1);
+          currRoadType = 1;
+        }
+        currentPoints.add(currPos);
+      }
+      if (x == 2) {
+        if (currRoadType != 2) {
+          currentPoints = [];
+          currentPoints.add(prevPos!);
+          _addNewPolyline(type: 2);
+          currRoadType = 2;
+        }
+        currentPoints.add(currPos);
+      }
+      prevPos = currPos;
+      _googleMapController.animateCamera(CameraUpdate.newLatLng(currPos));
+      final MarkerId markerId = MarkerId("CurrPos");
+
+      final Marker marker = Marker(
+        markerId: markerId,
+        position: currPos,
+        infoWindow:
+            InfoWindow(title: "Current Position", snippet: 'Current position'),
+      );
+
+      setState(() {
+        markers[markerId] = marker;
+      });
     });
 
     setState(() {
       addInitialPositionMarker();
       gotData = true;
     });
-  }
-
-  _addPolyline(LatLng pos1, LatLng pos2) {
-    List<LatLng> latlng = [];
-    latlng.add(pos1);
-    latlng.add(pos2);
-    _polyline.add(Polyline(
-      polylineId: PolylineId("Route"),
-      visible: true,
-      //latlng is List<LatLng>
-      points: latlng,
-      color: Colors.blue,
-    ));
   }
 
   addInitialPositionMarker() {
@@ -113,51 +194,100 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     });
   }
 
-  Completer<GoogleMapController> _controller = Completer();
-
   buildMap() {
     return Container(
       child: GoogleMap(
         markers: Set<Marker>.of(markers.values),
         polylines: _polyline,
-        mapType: MapType.hybrid,
+        mapType: mapTypes[currentMapType],
+        trafficEnabled: trafficEnabled,
         initialCameraPosition: CameraPosition(
           target: LatLng(_locationData.latitude, _locationData.longitude),
           zoom: 20,
         ),
         onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
+          _googleMapController = controller;
         },
       ),
     );
   }
 
-  buildFloatingActionButton() {
-    return FabCircularMenu(
-      children: <Widget>[
-        IconButton(
-            icon: Icon(Icons.map_outlined),
-            onPressed: () {
-              print('Home');
-            }),
-        IconButton(
-            icon: Icon(Icons.control_point_duplicate_outlined),
-            onPressed: () {
-              print('Favorite');
-            }),
-        IconButton(
-            icon: Icon(Icons.camera_alt),
-            onPressed: () {
-              print('video');
-            })
-      ],
-      alignment: Alignment.centerRight,
-      ringWidth: 100,
-      ringDiameter: 250,
-    );
-  }
+  final Widget normalChildButton = SizedBox(
+    width: 93,
+    height: 40,
+    child: Padding(
+      padding: const EdgeInsets.only(left: 16, right: 11),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Flexible(child: Text("Map Type", overflow: TextOverflow.ellipsis)),
+          const SizedBox(
+            width: 12,
+            height: 17,
+            child: FittedBox(
+              fit: BoxFit.fill,
+              child: Icon(
+                Icons.arrow_drop_down,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
-  bool isFloatingOpen = false;
+  buildMapSettingsPopup() async {
+    await NDialog(
+      dialogStyle: DialogStyle(titleDivider: true),
+      title: Text("Map Settings"),
+      content: Container(
+        height: MediaQuery.of(context).size.height / 2,
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text("Map Type"),
+                MenuButton(
+                  child: normalChildButton,
+                  items: mapTypeDropdownItems,
+                  itemBuilder: (String value) => Container(
+                    height: 40,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 0.0, horizontal: 5),
+                    child: Text(value),
+                  ),
+                  toggledChild: Container(
+                    child: normalChildButton,
+                  ),
+                  onItemSelected: (String value) {
+                    setState(() {
+                      currentMapType = mapTypeDropdownItems.indexOf(value);
+                    });
+                  },
+                )
+              ],
+            ),
+            Row(
+              children: [
+                Text("Traffic "),
+                FlutterSwitch(
+                    value: trafficEnabled,
+                    onToggle: (_) {
+                      setState(() {
+                        trafficEnabled = !trafficEnabled;
+                        Navigator.pop(context);
+                      });
+                    })
+              ],
+            ),
+          ],
+        ),
+      ),
+    ).show(context, transitionType: DialogTransitionType.Bubble);
+  }
 
   buildFloatingBox() {
     return FloatingMenuPanel(
@@ -184,7 +314,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       borderWidth: 1.0, // Width of panel border
       borderColor: Colors.black, // Color of panel border
       onPressed: (index) {
-        print("Clicked on item: $index");
+        if (index == 0) buildMapSettingsPopup();
       },
       buttons: [
         Icons.map_outlined,
@@ -198,9 +328,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     return Scaffold(
       body: Stack(
         children: [
-          Expanded(
-            child: gotData ? buildMap() : Text("Fetching location ! "),
-          ),
+          gotData ? buildMap() : Text("Fetching location ! "),
           buildFloatingBox(),
         ],
       ),
