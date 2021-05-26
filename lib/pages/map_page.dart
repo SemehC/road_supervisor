@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_switch/flutter_switch.dart';
@@ -101,7 +100,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   leading: Icon(Icons.sensors),
                   title: initializedSensors
                       ? Text(
-                          "X-Axis : " + accelerometerEvent.x.toStringAsFixed(3),
+                          "X-Axis : " + accelerometerEvent.x.toStringAsFixed(1),
                         )
                       : Text(""),
                 ),
@@ -109,7 +108,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   leading: Icon(Icons.sensors),
                   title: initializedSensors
                       ? Text(
-                          "Y-Axis : " + accelerometerEvent.y.toStringAsFixed(3),
+                          "Y-Axis : " + accelerometerEvent.y.toStringAsFixed(1),
                         )
                       : Text(""),
                 ),
@@ -117,7 +116,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   leading: Icon(Icons.sensors),
                   title: initializedSensors
                       ? Text(
-                          "Z-Axis : " + accelerometerEvent.z.toStringAsFixed(3),
+                          "Z-Axis : " + accelerometerEvent.z.toStringAsFixed(1),
                         )
                       : Text(""),
                 ),
@@ -133,6 +132,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     int id = _polyline.length;
     if (type == 0) {
       _polyline.add(Polyline(
+        endCap: Cap.roundCap,
+        startCap: Cap.roundCap,
         polylineId: PolylineId("${id + 1}"),
         visible: true,
         points: currentPoints,
@@ -141,6 +142,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     }
     if (type == 1) {
       _polyline.add(Polyline(
+        endCap: Cap.roundCap,
+        startCap: Cap.roundCap,
         polylineId: PolylineId("${id + 1}"),
         visible: true,
         points: currentPoints,
@@ -149,6 +152,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     }
     if (type == 2) {
       _polyline.add(Polyline(
+        endCap: Cap.roundCap,
+        startCap: Cap.roundCap,
         polylineId: PolylineId("${id + 1}"),
         visible: true,
         points: currentPoints,
