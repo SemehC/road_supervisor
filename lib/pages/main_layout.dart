@@ -42,7 +42,8 @@ class _MainLayoutState extends State<MainLayout> {
       selectedIndex: _currentIndex,
       onItemSelected: (index) {
         setState(() => _currentIndex = index);
-        _pageController.jumpToPage(index);
+        _pageController.animateToPage(index,
+            duration: Duration(milliseconds: 500), curve: Curves.easeInOut);
       },
       items: <BottomNavyBarItem>[
         BottomNavyBarItem(title: Text('Map'), icon: Icon(Icons.map)),
