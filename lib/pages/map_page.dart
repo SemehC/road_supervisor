@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:menu_button/menu_button.dart';
@@ -17,32 +18,45 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
+  //Location service
   Location location = new Location();
+  //Location service enabled
   late bool _serviceEnabled;
+  //Permissions check
   late PermissionStatus _permissionGranted;
+  //Location data
   late LocationData _locationData;
-
+  //Google map Controller
+  late GoogleMapController _googleMapController;
+  //Map markers
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
-  int _markerIdCounter = 1;
+  //Fetched locations status
   bool gotData = false;
-  double minLocationDistance = 1.0;
+  //Minimum location distance change
+  double minLocationDistance = 5.0;
 
-  List<LocationData> locations = [];
-  final Set<Polyline> _polyline = {};
+  //Map Polylines
+  Set<Polyline> _polyline = {};
+  //Current polyline points
+  List<LatLng> currentPoints = [];
 
+  //Google map map types
   List<MapType> mapTypes = [
     MapType.normal,
     MapType.satellite,
     MapType.hybrid,
     MapType.terrain
   ];
+  //Initial map type
   int currentMapType = 0;
+  //Map type dropdown
   List<String> mapTypeDropdownItems = [
     "Normal",
     "Satellite",
     "Hybrid",
     "Terrain"
   ];
+  //Traffic enabled status
   bool trafficEnabled = false;
   @override
   void initState() {
@@ -50,9 +64,39 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     initializeLocation();
   }
 
+  _addNewPolyline({int type = 0}) {
+    int id = _polyline.length;
+    if (type == 0) {
+      _polyline.add(Polyline(
+        polylineId: PolylineId("${id + 1}"),
+        visible: true,
+        points: currentPoints,
+        color: Colors.blue,
+      ));
+    }
+    if (type == 1) {
+      _polyline.add(Polyline(
+        polylineId: PolylineId("${id + 1}"),
+        visible: true,
+        points: currentPoints,
+        color: Colors.orange,
+      ));
+    }
+    if (type == 2) {
+      _polyline.add(Polyline(
+        polylineId: PolylineId("${id + 1}"),
+        visible: true,
+        points: currentPoints,
+        color: Colors.red,
+      ));
+    }
+  }
+
+  LatLng? prevPos = null;
+  int currRoadType = 0;
   initializeLocation() async {
     // ignore: deprecated_member_use
-
+    var rng = new Random();
     _serviceEnabled = await location.serviceEnabled();
     if (!_serviceEnabled) {
       _serviceEnabled = await location.requestService();
@@ -69,46 +113,67 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       }
     }
     _locationData = await location.getLocation();
-    locations.add(_locationData);
+    prevPos = LatLng(_locationData.latitude, _locationData.longitude);
     location.changeSettings(
       accuracy: LocationAccuracy.high,
       distanceFilter: minLocationDistance,
     );
 
     location.onLocationChanged.listen((LocationData currentLocation) {
-      locations.add(currentLocation);
-      if (locations.length > 1) {
-        Fluttertoast.showToast(
-            msg:
-                "Locations : ${locations[locations.length - 1]} ; ${locations[locations.length]}");
-        _addPolyline(
-          LatLng(locations[locations.length - 1].latitude,
-              locations[locations.length - 1].longitude),
-          LatLng(locations[locations.length].latitude,
-              locations[locations.length].longitude),
-        );
-      }
+      LatLng currPos = LatLng(
+        currentLocation.latitude,
+        currentLocation.longitude,
+      );
 
-      print(currentLocation);
+      int x = rng.nextInt(3);
+
+      if (x == 0) {
+        if (currRoadType != 0) {
+          currentPoints = [];
+          currentPoints.add(prevPos!);
+          _addNewPolyline(type: 0);
+          currRoadType = 0;
+        }
+        currentPoints.add(currPos);
+      }
+      if (x == 1) {
+        if (currRoadType != 1) {
+          currentPoints = [];
+          currentPoints.add(prevPos!);
+          _addNewPolyline(type: 1);
+          currRoadType = 1;
+        }
+        currentPoints.add(currPos);
+      }
+      if (x == 2) {
+        if (currRoadType != 2) {
+          currentPoints = [];
+          currentPoints.add(prevPos!);
+          _addNewPolyline(type: 2);
+          currRoadType = 2;
+        }
+        currentPoints.add(currPos);
+      }
+      prevPos = currPos;
+      _googleMapController.animateCamera(CameraUpdate.newLatLng(currPos));
+      final MarkerId markerId = MarkerId("CurrPos");
+
+      final Marker marker = Marker(
+        markerId: markerId,
+        position: currPos,
+        infoWindow:
+            InfoWindow(title: "Current Position", snippet: 'Current position'),
+      );
+
+      setState(() {
+        markers[markerId] = marker;
+      });
     });
 
     setState(() {
       addInitialPositionMarker();
       gotData = true;
     });
-  }
-
-  _addPolyline(LatLng pos1, LatLng pos2) {
-    List<LatLng> latlng = [];
-    latlng.add(pos1);
-    latlng.add(pos2);
-    _polyline.add(Polyline(
-      polylineId: PolylineId("Route"),
-      visible: true,
-      //latlng is List<LatLng>
-      points: latlng,
-      color: Colors.blue,
-    ));
   }
 
   addInitialPositionMarker() {
@@ -129,8 +194,6 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     });
   }
 
-  Completer<GoogleMapController> _controller = Completer();
-
   buildMap() {
     return Container(
       child: GoogleMap(
@@ -143,7 +206,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           zoom: 20,
         ),
         onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
+          _googleMapController = controller;
         },
       ),
     );
