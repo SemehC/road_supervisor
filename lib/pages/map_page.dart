@@ -5,7 +5,7 @@ import 'package:flutter_switch/flutter_switch.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:ndialog/ndialog.dart';
@@ -58,10 +58,75 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   ];
   //Traffic enabled status
   bool trafficEnabled = false;
+
+  /*
+    Sensors
+  */
+  bool initializedSensors = false;
+  bool showSensors = false;
+  late UserAccelerometerEvent accelerometerEvent;
+
   @override
   void initState() {
     super.initState();
     initializeLocation();
+    initializeSensors();
+  }
+
+  initializeSensors() {
+    userAccelerometerEvents.listen((UserAccelerometerEvent event) {
+      setState(() {
+        accelerometerEvent = event;
+      });
+    });
+    setState(() {
+      initializedSensors = true;
+    });
+  }
+
+  buildAccelerometerDataDisplay() {
+    return Container(
+      margin: EdgeInsets.only(left: MediaQuery.of(context).size.width / 4),
+      width: MediaQuery.of(context).size.width / 2,
+      child: Column(
+        children: [
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                    title: Text(
+                  "Accelerometer sensor : ",
+                )),
+                ListTile(
+                  leading: Icon(Icons.sensors),
+                  title: initializedSensors
+                      ? Text(
+                          "X-Axis : " + accelerometerEvent.x.toStringAsFixed(3),
+                        )
+                      : Text(""),
+                ),
+                ListTile(
+                  leading: Icon(Icons.sensors),
+                  title: initializedSensors
+                      ? Text(
+                          "Y-Axis : " + accelerometerEvent.y.toStringAsFixed(3),
+                        )
+                      : Text(""),
+                ),
+                ListTile(
+                  leading: Icon(Icons.sensors),
+                  title: initializedSensors
+                      ? Text(
+                          "Z-Axis : " + accelerometerEvent.z.toStringAsFixed(3),
+                        )
+                      : Text(""),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   _addNewPolyline({int type = 0}) {
@@ -315,10 +380,15 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       borderColor: Colors.black, // Color of panel border
       onPressed: (index) {
         if (index == 0) buildMapSettingsPopup();
+        if (index == 2)
+          setState(() {
+            showSensors = !showSensors;
+          });
       },
       buttons: [
         Icons.map_outlined,
         Icons.camera_alt,
+        showSensors ? Icons.sensors_off : Icons.sensors,
       ],
     );
   }
@@ -330,6 +400,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         children: [
           gotData ? buildMap() : Text("Fetching location ! "),
           buildFloatingBox(),
+          if (showSensors) buildAccelerometerDataDisplay(),
         ],
       ),
     );
