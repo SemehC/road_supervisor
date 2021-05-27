@@ -3,6 +3,8 @@ import 'package:flutter_switch/flutter_switch.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:ndialog/ndialog.dart';
 import 'package:menu_button/menu_button.dart';
+import 'package:road_supervisor/main.dart';
+import 'package:road_supervisor/pages/login_signup.dart';
 
 class MySettingsWidget extends StatefulWidget {
   MySettingsWidget({Key? key}) : super(key: key);
@@ -177,6 +179,20 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
                         },
                       ),
                     ]),
+                TextButton.icon(
+                  onPressed: () {
+                    auth.signOut();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext context) => LoginSignup(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  icon: Icon(Icons.logout, size: 18),
+                  label: Text("LOG OUT ASBA"),
+                )
               ],
             )));
   }
