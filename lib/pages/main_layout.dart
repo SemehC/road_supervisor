@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bottom_navy_bar/bottom_navy_bar.dart';
 import 'package:road_supervisor/pages/map_page.dart';
 import 'package:road_supervisor/pages/my_account.dart';
-
+import 'package:road_supervisor/pages/about.dart';
 import 'settings.dart';
 
 class MainLayout extends StatefulWidget {
@@ -49,8 +49,8 @@ class _MainLayoutState extends State<MainLayout> {
         BottomNavyBarItem(title: Text('Map'), icon: Icon(Icons.map)),
         BottomNavyBarItem(
             title: Text('My Account'), icon: Icon(Icons.account_box_rounded)),
-        BottomNavyBarItem(title: Text('About'), icon: Icon(Icons.info)),
         BottomNavyBarItem(title: Text('Settings'), icon: Icon(Icons.settings)),
+        BottomNavyBarItem(title: Text('About'), icon: Icon(Icons.info)),
       ],
     );
   }
@@ -69,10 +69,8 @@ class _MainLayoutState extends State<MainLayout> {
           children: <Widget>[
             MapPage(),
             MyAccoutWidget(),
-            Container(
-              color: Colors.green,
-            ),
             MySettingsWidget(),
+            AboutWidget(),
           ],
         ),
       ),
