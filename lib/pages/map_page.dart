@@ -1,15 +1,16 @@
 import 'dart:math';
 
 import 'package:camera/camera.dart';
-import 'package:draggable_widget/draggable_widget.dart';
-import 'package:flutter_switch/flutter_switch.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:group_button/group_button.dart';
+
 import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'package:lottie/lottie.dart' as lottie;
 import 'package:location/location.dart';
 import 'package:ndialog/ndialog.dart';
 
@@ -607,16 +608,29 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     ];
   }
 
+  buildLoadingScreen() {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
+      child: lottie.Lottie.asset(
+        "assets/lottie/gps_sattelite_orbit.json",
+        animate: true,
+        repeat: true,
+        reverse: true,
+        alignment: Alignment.center,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          if (mapIsMainPage)
-            ...buildMapMainPageUI()
-          else
-            ...buildCamerMainPageUI(),
-          buildFloatingBox(),
+          if (!gotData) buildLoadingScreen(),
+          if (mapIsMainPage & gotData) ...buildMapMainPageUI(),
+          if (!mapIsMainPage & gotData) ...buildCamerMainPageUI(),
+          if (gotData) buildFloatingBox(),
         ],
       ),
     );
