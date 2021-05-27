@@ -3,6 +3,7 @@ import 'package:lottie/lottie.dart' as lottie;
 import 'package:horizontal_card_pager/horizontal_card_pager.dart';
 import 'package:horizontal_card_pager/card_item.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:ndialog/ndialog.dart';
 
 class AboutWidget extends StatefulWidget {
   AboutWidget({Key? key}) : super(key: key);
@@ -87,12 +88,12 @@ class _AboutWidgetState extends State<AboutWidget> {
                       shadows: <Shadow>[
                         Shadow(
                           offset: Offset(1.0, 1.0),
-                          blurRadius: 1.0,
+                          blurRadius: .5,
                           color: Color.fromARGB(255, 0, 0, 0),
                         ),
                         Shadow(
                           offset: Offset(1, 1.0),
-                          blurRadius: 1.0,
+                          blurRadius: .5,
                           color: Color.fromARGB(125, 0, 0, 255),
                         ),
                       ],
@@ -107,7 +108,7 @@ class _AboutWidgetState extends State<AboutWidget> {
                   changeText(page.toInt());
                 },
                 onSelectedItem: (page) {
-                  print("selected : $page");
+                  showPic(page.toInt());
                 },
                 items: items,
                 initialPage: 1,
@@ -115,5 +116,25 @@ class _AboutWidgetState extends State<AboutWidget> {
             ],
           ),
         ));
+  }
+
+  Future<void> showPic(int i) async {
+    await NAlertDialog(
+      dialogStyle: DialogStyle(titleDivider: true),
+      title: Text(
+        "$name",
+        textAlign: TextAlign.center,
+      ),
+      content: Container(
+        height: 450,
+        child: Column(
+          children: [
+            Image.asset(
+              "assets/images/Profile$i.jpg",
+            )
+          ],
+        ),
+      ),
+    ).show(context, transitionType: DialogTransitionType.Bubble);
   }
 }
