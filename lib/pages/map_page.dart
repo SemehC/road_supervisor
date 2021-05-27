@@ -11,7 +11,8 @@ import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:lottie/lottie.dart' as lottie;
-import 'package:location/location.dart';
+import 'package:geolocator/geolocator.dart';
+
 import 'package:ndialog/ndialog.dart';
 
 import '../main.dart';
@@ -25,13 +26,13 @@ class MapPage extends StatefulWidget {
 
 class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   //Location service
-  Location location = new Location();
+
   //Location service enabled
   late bool _serviceEnabled;
   //Permissions check
-  late PermissionStatus _permissionGranted;
+
   //Location data
-  late LocationData _locationData;
+  late Position _initialPosition;
   //Google map Controller
   late GoogleMapController _googleMapController;
   //Map markers
@@ -39,7 +40,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   //Fetched locations status
   bool gotData = false;
   //Minimum location distance change
-  double minLocationDistance = 5.0;
+  int minLocationDistance = 5;
 
   //Map Polylines
   Set<Polyline> _polyline = {};
@@ -209,32 +210,20 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   initializeLocation() async {
     // ignore: deprecated_member_use
     var rng = new Random();
-    _serviceEnabled = await location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await location.requestService();
-      if (!_serviceEnabled) {
-        return;
-      }
+    LocationPermission permission = await Geolocator.checkPermission();
+    while (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
     }
 
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
-        return;
-      }
-    }
-    _locationData = await location.getLocation();
-    prevPos = LatLng(_locationData.latitude, _locationData.longitude);
-    location.changeSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: minLocationDistance,
-    );
-
-    location.onLocationChanged.listen((LocationData currentLocation) {
+    _initialPosition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    Geolocator.getPositionStream(
+            desiredAccuracy: LocationAccuracy.high,
+            distanceFilter: minLocationDistance)
+        .listen((Position position) {
       LatLng currPos = LatLng(
-        currentLocation.latitude,
-        currentLocation.longitude,
+        position.latitude,
+        position.longitude,
       );
 
       int x = rng.nextInt(3);
@@ -282,6 +271,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       });
     });
 
+    addInitialPositionMarker();
     setState(() {
       addInitialPositionMarker();
       gotData = true;
@@ -290,12 +280,11 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   addInitialPositionMarker() {
     final MarkerId markerId = MarkerId("initialPosition");
-
     final Marker marker = Marker(
       markerId: markerId,
       position: LatLng(
-        _locationData.latitude,
-        _locationData.longitude,
+        _initialPosition.latitude,
+        _initialPosition.longitude,
       ),
       infoWindow:
           InfoWindow(title: "initialPosition", snippet: 'Initial Position'),
@@ -314,7 +303,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         mapType: mapTypes[currentMapType],
         trafficEnabled: trafficEnabled,
         initialCameraPosition: CameraPosition(
-          target: LatLng(_locationData.latitude, _locationData.longitude),
+          target: LatLng(_initialPosition.latitude, _initialPosition.longitude),
           zoom: 20,
         ),
         onMapCreated: (GoogleMapController controller) {
