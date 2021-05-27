@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "591419486188",
+    "project_id": "road-supervisor-314809",
+    "storage_bucket": "road-supervisor-314809.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:591419486188:android:ae2f15809fd261df1e5ac9",
+        "android_client_info": {
+          "package_name": "tn.enis.road_supervisor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "591419486188-lpvdhn9lrudo5p94ba2j8egv5gi1s5no.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0NYQLQN2fYJUmCUkh2f_uFor0VYB3qic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "591419486188-lpvdhn9lrudo5p94ba2j8egv5gi1s5no.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
