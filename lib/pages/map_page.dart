@@ -1,6 +1,10 @@
 import 'dart:math';
 
+import 'package:camera/camera.dart';
+import 'package:draggable_widget/draggable_widget.dart';
 import 'package:flutter_switch/flutter_switch.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:group_button/group_button.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +12,8 @@ import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:ndialog/ndialog.dart';
+
+import '../main.dart';
 
 class MapPage extends StatefulWidget {
   MapPage({Key? key}) : super(key: key);
@@ -58,6 +64,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   //Traffic enabled status
   bool trafficEnabled = false;
 
+  LatLng? prevPos = null;
+  int currRoadType = 0;
   /*
     Sensors
   */
@@ -65,11 +73,46 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   bool showSensors = false;
   late UserAccelerometerEvent accelerometerEvent;
 
+  /*
+    Camera
+  */
+  late CameraController _cameraController;
+  bool showCamera = false;
+
+  double cameraPreviewHeight = 200;
+  double cameraPreviewWidth = 100;
+  bool isCameraPreviewZoomedIn = false;
+  double cameraPreviewTop = 0;
+  double cameraPreviewRight = 0;
+
+  /*
+  UI
+  */
+
+  bool mapIsMainPage = true;
+
   @override
   void initState() {
     super.initState();
+    fetchCamera();
     initializeLocation();
     initializeSensors();
+  }
+
+  fetchCamera() {
+    _cameraController = CameraController(cameras[0], ResolutionPreset.max);
+    _cameraController.initialize().then((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    super.dispose();
   }
 
   initializeSensors() {
@@ -162,8 +205,6 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     }
   }
 
-  LatLng? prevPos = null;
-  int currRoadType = 0;
   initializeLocation() async {
     // ignore: deprecated_member_use
     var rng = new Random();
@@ -312,11 +353,12 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       dialogStyle: DialogStyle(titleDivider: true),
       title: Text("Map Settings"),
       content: Container(
-        height: MediaQuery.of(context).size.height / 2,
+        height: 200,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text("Map Type"),
                 MenuButton(
@@ -340,17 +382,24 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                 )
               ],
             ),
+            SizedBox(height: 20),
             Row(
               children: [
                 Text("Traffic "),
-                FlutterSwitch(
-                    value: trafficEnabled,
-                    onToggle: (_) {
+                GroupButton(
+                  selectedButtons: [trafficEnabled ? "Show" : "Hide"],
+                  onSelected: (index, isSelected) {
+                    if (index == 0)
                       setState(() {
-                        trafficEnabled = !trafficEnabled;
-                        Navigator.pop(context);
+                        trafficEnabled = true;
                       });
-                    })
+                    if (index == 1)
+                      setState(() {
+                        trafficEnabled = false;
+                      });
+                  },
+                  buttons: ["Show", "Hide"],
+                ),
               ],
             ),
           ],
@@ -383,19 +432,179 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       iconSize: 24.0, // Size of icons
       borderWidth: 1.0, // Width of panel border
       borderColor: Colors.black, // Color of panel border
+
       onPressed: (index) {
         if (index == 0) buildMapSettingsPopup();
+        if (index == 1) {
+          setState(() {
+            if (mapIsMainPage) showCamera = !showCamera;
+          });
+        }
         if (index == 2)
           setState(() {
             showSensors = !showSensors;
           });
+        if (index == 3) {
+          if (showCamera)
+            setState(() {
+              mapIsMainPage = !mapIsMainPage;
+            });
+          else {
+            Fluttertoast.showToast(msg: "Enable camera first");
+          }
+        }
       },
       buttons: [
         Icons.map_outlined,
-        Icons.camera_alt,
+        showCamera ? Icons.camera_enhance_outlined : Icons.camera,
         showSensors ? Icons.sensors_off : Icons.sensors,
+        showCamera ? Icons.fullscreen : Icons.fullscreen_exit,
       ],
     );
+  }
+
+  handleCameraPreviewClick() {
+    if (isCameraPreviewZoomedIn) {
+      print("Zooming out");
+      setState(() {
+        cameraPreviewHeight = 200;
+        cameraPreviewWidth = 100;
+        isCameraPreviewZoomedIn = false;
+      });
+    } else {
+      setState(() {
+        cameraPreviewHeight = 400;
+        cameraPreviewWidth = 200;
+        isCameraPreviewZoomedIn = true;
+      });
+    }
+  }
+
+  handleCameraPreviewPan(double dx, double dy) {
+    if (cameraPreviewRight >= 0) {
+      setState(() {
+        cameraPreviewRight -= dx;
+      });
+    }
+    if (cameraPreviewTop >= 0) {
+      setState(() {
+        cameraPreviewTop += dy;
+      });
+    }
+
+    if (cameraPreviewRight < 0) cameraPreviewRight = 0;
+    if (cameraPreviewTop < 0) cameraPreviewTop = 0;
+    if (cameraPreviewRight >
+        MediaQuery.of(context).size.width - cameraPreviewWidth)
+      cameraPreviewRight =
+          MediaQuery.of(context).size.width - cameraPreviewWidth;
+
+    if (cameraPreviewTop >
+        MediaQuery.of(context).size.height - cameraPreviewHeight - 150)
+      cameraPreviewTop =
+          MediaQuery.of(context).size.height - cameraPreviewHeight - 150;
+  }
+
+  buildCameraView() {
+    return AnimatedPositioned(
+      duration: Duration(milliseconds: 100),
+      top: cameraPreviewTop,
+      right: cameraPreviewRight,
+      child: GestureDetector(
+        onPanUpdate: (dragUpdate) {
+          handleCameraPreviewPan(dragUpdate.delta.dx, dragUpdate.delta.dy);
+        },
+        onTap: handleCameraPreviewClick,
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 500),
+          curve: Curves.fastOutSlowIn,
+          height: cameraPreviewHeight,
+          width: cameraPreviewWidth,
+          color: Colors.red,
+          child: CameraPreview(
+            _cameraController,
+          ),
+        ),
+      ),
+    );
+  }
+
+  buildMapSmallView() {
+    return AnimatedPositioned(
+      duration: Duration(milliseconds: 100),
+      top: cameraPreviewTop,
+      right: cameraPreviewRight,
+      child: GestureDetector(
+        onPanUpdate: (dragUpdate) {
+          handleCameraPreviewPan(dragUpdate.delta.dx, dragUpdate.delta.dy);
+        },
+        onLongPress: handleCameraPreviewClick,
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 500),
+          curve: Curves.fastOutSlowIn,
+          height: cameraPreviewHeight,
+          width: cameraPreviewWidth,
+          color: Colors.black,
+          child: buildMap(),
+        ),
+      ),
+    );
+  }
+
+  buildCameraMainView() {
+    return Container(
+      child: CameraPreview(
+        _cameraController,
+      ),
+    );
+  }
+
+  List<Widget> buildMapMainPageUI() {
+    return <Widget>[
+      gotData ? buildMap() : Text("Fetching location ! "),
+      if (showSensors) buildAccelerometerDataDisplay(),
+      if (showCamera) buildCameraView(),
+    ];
+  }
+
+  buildCameraBottomControls() {
+    return Container(
+      alignment: Alignment.bottomCenter,
+      margin: EdgeInsets.only(left: MediaQuery.of(context).size.width / 4),
+      width: MediaQuery.of(context).size.width / 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Card(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    var f = await _cameraController.takePicture();
+                    print(f.path);
+                  },
+                  icon: Icon(Icons.camera),
+                  iconSize: 45,
+                  color: Colors.black,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> buildCamerMainPageUI() {
+    return <Widget>[
+      buildCameraMainView(),
+      buildMapSmallView(),
+      buildCameraBottomControls(),
+    ];
   }
 
   @override
@@ -403,9 +612,11 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     return Scaffold(
       body: Stack(
         children: [
-          gotData ? buildMap() : Text("Fetching location ! "),
+          if (mapIsMainPage)
+            ...buildMapMainPageUI()
+          else
+            ...buildCamerMainPageUI(),
           buildFloatingBox(),
-          if (showSensors) buildAccelerometerDataDisplay(),
         ],
       ),
     );

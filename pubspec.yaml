@@ -35,6 +35,9 @@ dependencies:
   ndialog: ^4.1.0
   menu_button: ^1.4.2+1
   sensors: ^2.0.1
+  draggable_widget: ^1.1.1
+  camera: ^0.8.1+1
+  group_button: ^2.1.2
   
 
 
