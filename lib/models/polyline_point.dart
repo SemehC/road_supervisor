@@ -51,10 +51,13 @@ class PolyLinePoint {
     DbPolyline pt = DbPolyline(fileLocation: file.path);
     DatabaseManager.insertToDatabase(pt);
     int count = 0;
-
-    final encodedList = jsonEncode(pts);
-    print("Saving the file : ");
-    print(encodedList);
-    file.writeAsString(encodedList);
+    String finalString = "{";
+    pts.forEach((element) {
+      finalString +=
+          "$count : { 'lat' : '${element.lat}','long' : '${element.long}','type' : '${element.type}' } ";
+      count++;
+    });
+    finalString += "}";
+    file.writeAsString(finalString);
   }
 }

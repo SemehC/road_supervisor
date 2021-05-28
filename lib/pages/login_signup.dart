@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
 import 'package:road_supervisor/main.dart';
+import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/main_layout.dart';
 
 class LoginSignup extends StatefulWidget {
@@ -29,12 +30,13 @@ class _LoginSignupState extends State<LoginSignup> {
       var x = await auth.createUserWithEmailAndPassword(
           email: data.name, password: data.password);
       await usersRef.doc(x.user!.uid).set({
-        "FirstName": null,
-        "LastName": null,
+        "FullName": null,
         "CarType": null,
+        "photoUrl": null,
         "CreationTime": DateTime.now(),
       });
       currentUser = x.user;
+      UserManager.currentUser = currentUser;
     } on FirebaseAuthException catch (e) {
       return (e.message);
     }

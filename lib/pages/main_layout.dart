@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bottom_navy_bar/bottom_navy_bar.dart';
+import 'package:road_supervisor/main.dart';
+import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/map_page.dart';
 import 'package:road_supervisor/pages/my_account.dart';
 import 'package:road_supervisor/pages/about.dart';
@@ -19,7 +21,12 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
+    loadUserInfo();
     _pageController = PageController();
+  }
+
+  loadUserInfo() async {
+    await UserManager.fetchUserInfo();
   }
 
   @override

@@ -2,14 +2,17 @@ import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:road_supervisor/models/database_manager.dart';
+import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
 import 'package:road_supervisor/pages/main_layout.dart';
 
 var usersRef = FirebaseFirestore.instance.collection("users");
 final GoogleSignIn googleSignIn = GoogleSignIn();
+final storageRef = FirebaseStorage.instance.ref();
 FirebaseAuth auth = FirebaseAuth.instance;
 late List<CameraDescription> cameras;
 
@@ -29,6 +32,7 @@ bool isLoggedIn = false;
 checkIfLoggedIn() async {
   currentUser = auth.currentUser;
   isLoggedIn = currentUser != null;
+  if (isLoggedIn) UserManager.currentUser = currentUser;
 }
 
 class MyApp extends StatelessWidget {
