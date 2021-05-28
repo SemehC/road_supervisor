@@ -6,6 +6,8 @@ import 'package:menu_button/menu_button.dart';
 import 'package:road_supervisor/main.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lottie/lottie.dart' as lottie;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MySettingsWidget extends StatefulWidget {
   MySettingsWidget({Key? key}) : super(key: key);
@@ -15,7 +17,11 @@ class MySettingsWidget extends StatefulWidget {
 }
 
 class _MySettingsWidgetState extends State<MySettingsWidget> {
+  static const RECEIVE_NOTIFICATIONS = "getNotifications";
+  static const LANGUAGE = "language";
+  static const SPEED_UNIT = "speedUnit";
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   bool speedUnit = false;
   bool receiveNotifications = false;
   String email = "";
@@ -27,10 +33,41 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     'English',
     'French',
   ];
+  bool gotUserData = false;
   @override
   void initState() {
     super.initState();
     getUserDataField(currentUser!.uid);
+    getLocalSettings();
+  }
+
+  getLocalSettings() {
+    _prefs.then((SharedPreferences pref) {
+      setState(() {
+        //speed unit ==> kmh = true, mph = false
+        speedUnit = pref.getBool(_MySettingsWidgetState.SPEED_UNIT) ?? true;
+        receiveNotifications =
+            pref.getBool(_MySettingsWidgetState.RECEIVE_NOTIFICATIONS) ?? false;
+        selectedLanguage =
+            pref.getString(_MySettingsWidgetState.LANGUAGE) ?? languages[0];
+      });
+    });
+  }
+
+  setString(String key, String value) {
+    _prefs.then((SharedPreferences pref) {
+      setState(() {
+        pref.setString(key, value);
+      });
+    });
+  }
+
+  setBool(String key, bool value) {
+    _prefs.then((SharedPreferences pref) {
+      setState(() {
+        pref.setBool(key, value);
+      });
+    });
   }
 
   Future<void> updateUser(userId, field, value) {
@@ -45,175 +82,209 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     await usersRef.doc(userId).get().then((DocumentSnapshot doc) {
       setState(() {
         fullName = doc["FullName"].toString();
+        email = currentUser!.email.toString();
+        gotUserData = true;
       });
     });
+  }
+
+  buildLoadingScreen() {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
+      child: lottie.Lottie.asset(
+        "assets/lottie/gps_sattelite_orbit.json",
+        animate: true,
+        repeat: true,
+        reverse: true,
+        alignment: Alignment.center,
+      ),
+    );
+  }
+
+  buildUserInfoScreen() {
+    return SingleChildScrollView(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.all(8.0),
+                color: Theme.of(context).primaryColor,
+                child: ListTile(
+                  onTap: () {
+                    showNamePopup();
+                  },
+                  title: Text(
+                    fullName,
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w500),
+                  ),
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(
+                      'https://picsum.photos/seed/867/600',
+                    ),
+                  ),
+                  trailing: Icon(
+                    Icons.edit,
+                    color: Colors.white,
+                  ),
+                )),
+            const SizedBox(height: 10.0),
+            Card(
+              elevation: 8,
+              margin: const EdgeInsets.fromLTRB(10.0, 0, 10.0, 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.0)),
+              child: Column(
+                children: <Widget>[
+                  ListTile(
+                    leading: Icon(
+                      Icons.lock_outline,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    title: Text("Change Password"),
+                    trailing: Icon(Icons.keyboard_arrow_right),
+                    onTap: () {
+                      showPasswordPopup();
+                    },
+                  ),
+                  divider(),
+                  ListTile(
+                    leading: Icon(
+                      Icons.mail_outline,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    title: Text("Change E-mail"),
+                    trailing: Icon(Icons.keyboard_arrow_right),
+                    onTap: () {
+                      showEmailPopup();
+                    },
+                  ),
+                  divider(),
+                  ListTile(
+                    leading: Icon(
+                      Icons.language_outlined,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    title: Text("Change Language"),
+                    trailing: Icon(Icons.keyboard_arrow_right),
+                    onTap: () {
+                      showLanguagePopup();
+                    },
+                  )
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text("Notification Settings",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor)),
+            Container(
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Receive notifications",
+                        style: TextStyle(
+                          fontSize: 16.5,
+                        )),
+                    FlutterSwitch(
+                      width: 100.0,
+                      height: 35.0,
+                      valueFontSize: 18.0,
+                      toggleSize: 45.0,
+                      value: receiveNotifications,
+                      borderRadius: 30.0,
+                      padding: 8.0,
+                      inactiveColor: Theme.of(context).primaryColor,
+                      activeColor: Theme.of(context).primaryColor,
+                      activeText: "Yes",
+                      inactiveText: "No",
+                      showOnOff: true,
+                      onToggle: (val) {
+                        setState(() {
+                          receiveNotifications = val;
+                          setBool(_MySettingsWidgetState.RECEIVE_NOTIFICATIONS,
+                              receiveNotifications);
+                        });
+                      },
+                    ),
+                  ]),
+              margin: const EdgeInsets.only(bottom: 10),
+            ),
+            const SizedBox(height: 10),
+            Text("Speed Settings",
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor)),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text("Speed Unit",
+                  style: TextStyle(
+                    fontSize: 16.5,
+                  )),
+              FlutterSwitch(
+                width: 100.0,
+                height: 35.0,
+                valueFontSize: 18.0,
+                toggleSize: 45.0,
+                value: speedUnit,
+                borderRadius: 30.0,
+                padding: 8.0,
+                inactiveColor: Theme.of(context).primaryColor,
+                activeColor: Theme.of(context).primaryColor,
+                activeText: "KMH",
+                inactiveText: "MPH",
+                showOnOff: true,
+                onToggle: (val) {
+                  setState(() {
+                    speedUnit = val;
+                    setBool(_MySettingsWidgetState.SPEED_UNIT, speedUnit);
+                  });
+                },
+              ),
+            ]),
+            Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.fromLTRB(8, 40, 8, 8),
+                color: Theme.of(context).primaryColor,
+                child: ListTile(
+                  leading: Icon(
+                    Icons.logout_outlined,
+                    color: Theme.of(context).secondaryHeaderColor,
+                  ),
+                  title: Text(
+                    "Log out",
+                    style: TextStyle(
+                        color: Theme.of(context).secondaryHeaderColor),
+                  ),
+                  trailing: Icon(
+                    Icons.keyboard_arrow_right,
+                    color: Theme.of(context).secondaryHeaderColor,
+                  ),
+                  onTap: () {
+                    showLogOutPopup();
+                  },
+                )),
+          ],
+        ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: Colors.grey.shade200,
-        body: SingleChildScrollView(
-            padding: const EdgeInsets.all(15),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Card(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    margin: const EdgeInsets.all(8.0),
-                    color: Theme.of(context).primaryColor,
-                    child: ListTile(
-                      onTap: () {
-                        print("Fullname: " + fullName);
-                        showNamePopup();
-                      },
-                      title: Text(
-                        '$fullName',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.w500),
-                      ),
-                      leading: CircleAvatar(
-                        backgroundImage: NetworkImage(
-                          'https://picsum.photos/seed/867/600',
-                        ),
-                      ),
-                      trailing: Icon(
-                        Icons.edit,
-                        color: Colors.white,
-                      ),
-                    )),
-                const SizedBox(height: 10.0),
-                Card(
-                  elevation: 8,
-                  margin: const EdgeInsets.fromLTRB(10.0, 0, 10.0, 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0)),
-                  child: Column(
-                    children: <Widget>[
-                      ListTile(
-                        leading: Icon(
-                          Icons.lock_outline,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        title: Text("Change Password"),
-                        trailing: Icon(Icons.keyboard_arrow_right),
-                        onTap: () {
-                          showPasswordPopup();
-                        },
-                      ),
-                      divider(),
-                      ListTile(
-                        leading: Icon(
-                          Icons.mail_outline,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        title: Text("Change E-mail"),
-                        trailing: Icon(Icons.keyboard_arrow_right),
-                        onTap: () {
-                          showEmailPopup();
-                        },
-                      ),
-                      divider(),
-                      ListTile(
-                        leading: Icon(
-                          Icons.language_outlined,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        title: Text("Change Language"),
-                        trailing: Icon(Icons.keyboard_arrow_right),
-                        onTap: () {
-                          showLanguagePopup();
-                        },
-                      )
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text("Notification Settings",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor)),
-                Container(
-                  child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text("Receive notifications",
-                            style: TextStyle(
-                              fontSize: 16.5,
-                            )),
-                        FlutterSwitch(
-                          width: 100.0,
-                          height: 35.0,
-                          valueFontSize: 18.0,
-                          toggleSize: 45.0,
-                          value: receiveNotifications,
-                          borderRadius: 30.0,
-                          padding: 8.0,
-                          inactiveColor: Theme.of(context).primaryColor,
-                          activeColor: Theme.of(context).primaryColor,
-                          activeText: "Yes",
-                          inactiveText: "No",
-                          showOnOff: true,
-                          onToggle: (val) {
-                            setState(() {
-                              receiveNotifications = val;
-                            });
-                          },
-                        ),
-                      ]),
-                  margin: const EdgeInsets.only(bottom: 10),
-                ),
-                const SizedBox(height: 10),
-                Text("Speed Settings",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor)),
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Speed Unit",
-                          style: TextStyle(
-                            fontSize: 16.5,
-                          )),
-                      FlutterSwitch(
-                        width: 100.0,
-                        height: 35.0,
-                        valueFontSize: 18.0,
-                        toggleSize: 45.0,
-                        value: speedUnit,
-                        borderRadius: 30.0,
-                        padding: 8.0,
-                        inactiveColor: Theme.of(context).primaryColor,
-                        activeColor: Theme.of(context).primaryColor,
-                        activeText: "KMH",
-                        inactiveText: "MPH",
-                        showOnOff: true,
-                        onToggle: (val) {
-                          setState(() {
-                            speedUnit = val;
-                          });
-                        },
-                      ),
-                    ]),
-                TextButton.icon(
-                  onPressed: () {
-                    auth.signOut();
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (BuildContext context) => LoginSignup(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  icon: Icon(Icons.logout, size: 18),
-                  label: Text("LOG OUT ASBA"),
-                )
-              ],
-            )));
+        body: Stack(
+          children: [
+            if (!gotUserData) buildLoadingScreen(),
+            if (gotUserData) buildUserInfoScreen(),
+          ],
+        ));
   }
 
   Container divider() {
@@ -222,6 +293,17 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       width: double.infinity,
       height: 1.0,
       color: Colors.grey,
+    );
+  }
+
+  void logOut() {
+    auth.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => LoginSignup(),
+      ),
+      (route) => false,
     );
   }
 
@@ -274,6 +356,33 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     ).show(context, transitionType: DialogTransitionType.Bubble);
   }
 
+  Future<void> showLogOutPopup() async {
+    await NAlertDialog(
+      dialogStyle: DialogStyle(titleDivider: true),
+      title: Text("Logging out !"),
+      content: Container(
+        height: 30,
+        child: Column(
+          children: [
+            Text("Are you sure you want to log out ?"),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        FlatButton(
+            child: Text("No"),
+            onPressed: () {
+              Navigator.pop(context);
+            }),
+        FlatButton(
+            child: Text("Yes"),
+            onPressed: () {
+              logOut();
+            }),
+      ],
+    ).show(context, transitionType: DialogTransitionType.Bubble);
+  }
+
   Future<void> showEmailPopup() async {
     await NAlertDialog(
       dialogStyle: DialogStyle(titleDivider: true),
@@ -283,7 +392,8 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
         child: Column(
           children: [
             Text("Enter the new email you want to add !"),
-            TextField(
+            TextFormField(
+              initialValue: email,
               decoration: InputDecoration(
                   border: new UnderlineInputBorder(
                       borderSide: new BorderSide(
@@ -363,6 +473,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
               onItemSelected: (String value) {
                 setState(() {
                   selectedLanguage = value;
+                  setString(_MySettingsWidgetState.LANGUAGE, selectedLanguage);
                   Navigator.pop(context);
                 });
               },
@@ -399,7 +510,9 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
                             color: Theme.of(context).primaryColor)),
                     hintText: 'Name'),
                 onChanged: (value) {
-                  fullName = value;
+                  setState(() {
+                    fullName = value;
+                  });
                 }),
           ],
         ),
@@ -444,6 +557,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).primaryColor);
+      auth.currentUser!.updatePassword(password);
       Navigator.pop(context);
     } else if (confirmPassword != password && password.length >= 8) {
       Fluttertoast.showToast(
@@ -476,6 +590,8 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).primaryColor);
+      print("New email : " + email);
+      auth.currentUser!.updateEmail(email);
       Navigator.pop(context);
     } else {
       Fluttertoast.showToast(
