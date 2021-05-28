@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
 import 'package:road_supervisor/pages/main_layout.dart';
 
@@ -16,6 +17,7 @@ User? currentUser = null;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseManager.initializeDatabase();
   await Firebase.initializeApp();
   cameras = await availableCameras();
   await checkIfLoggedIn();

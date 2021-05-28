@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
@@ -9,6 +10,9 @@ import 'package:group_button/group_button.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:road_supervisor/models/database_manager.dart';
+import 'package:road_supervisor/models/polyline_point.dart';
 import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -92,8 +96,13 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   /*
   UI
   */
-
+  bool startedScanning = false;
   bool mapIsMainPage = true;
+  Stopwatch watch = new Stopwatch();
+
+  /*App Vars */
+
+  List<PolyLinePoint> currPolylinePoints = [];
 
   @override
   void initState() {
@@ -223,54 +232,71 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
             desiredAccuracy: LocationAccuracy.high,
             distanceFilter: minLocationDistance)
         .listen((Position position) {
-      LatLng currPos = LatLng(
-        position.latitude,
-        position.longitude,
-      );
+      if (startedScanning) {
+        LatLng currPos = LatLng(
+          position.latitude,
+          position.longitude,
+        );
 
-      int x = rng.nextInt(3);
+        int x = rng.nextInt(3);
 
-      if (x == 0) {
-        if (currRoadType != 0) {
-          currentPoints = [];
-          currentPoints.add(prevPos!);
-          _addNewPolyline(type: 0);
-          currRoadType = 0;
+        if (x == 0) {
+          if (currRoadType != 0) {
+            currentPoints = [];
+            currPolylinePoints.add(PolyLinePoint(
+                lat: prevPos!.latitude, long: prevPos!.longitude, type: 0));
+            currentPoints.add(prevPos!);
+            _addNewPolyline(type: 0);
+            currRoadType = 0;
+          }
+          currPolylinePoints.add(PolyLinePoint(
+              lat: currPos.latitude, long: currPos.longitude, type: 0));
+
+          currentPoints.add(currPos);
         }
-        currentPoints.add(currPos);
-      }
-      if (x == 1) {
-        if (currRoadType != 1) {
-          currentPoints = [];
-          currentPoints.add(prevPos!);
-          _addNewPolyline(type: 1);
-          currRoadType = 1;
-        }
-        currentPoints.add(currPos);
-      }
-      if (x == 2) {
-        if (currRoadType != 2) {
-          currentPoints = [];
-          currentPoints.add(prevPos!);
-          _addNewPolyline(type: 2);
-          currRoadType = 2;
-        }
-        currentPoints.add(currPos);
-      }
-      prevPos = currPos;
-      _googleMapController.animateCamera(CameraUpdate.newLatLng(currPos));
-      final MarkerId markerId = MarkerId("CurrPos");
+        if (x == 1) {
+          if (currRoadType != 1) {
+            currentPoints = [];
+            currPolylinePoints.add(PolyLinePoint(
+                lat: prevPos!.latitude, long: prevPos!.longitude, type: 1));
+            currentPoints.add(prevPos!);
+            _addNewPolyline(type: 1);
+            currRoadType = 1;
+          }
+          currPolylinePoints.add(PolyLinePoint(
+              lat: currPos.latitude, long: currPos.longitude, type: 1));
 
-      final Marker marker = Marker(
-        markerId: markerId,
-        position: currPos,
-        infoWindow:
-            InfoWindow(title: "Current Position", snippet: 'Current position'),
-      );
+          currentPoints.add(currPos);
+        }
+        if (x == 2) {
+          if (currRoadType != 2) {
+            currentPoints = [];
+            currPolylinePoints.add(PolyLinePoint(
+                lat: prevPos!.latitude, long: prevPos!.longitude, type: 2));
+            currentPoints.add(prevPos!);
+            _addNewPolyline(type: 2);
+            currRoadType = 2;
+          }
+          currPolylinePoints.add(PolyLinePoint(
+              lat: currPos.latitude, long: currPos.longitude, type: 2));
 
-      setState(() {
-        markers[markerId] = marker;
-      });
+          currentPoints.add(currPos);
+        }
+        prevPos = currPos;
+        _googleMapController.animateCamera(CameraUpdate.newLatLng(currPos));
+        final MarkerId markerId = MarkerId("CurrPos");
+
+        final Marker marker = Marker(
+          markerId: markerId,
+          position: currPos,
+          infoWindow: InfoWindow(
+              title: "Current Position", snippet: 'Current position'),
+        );
+
+        setState(() {
+          markers[markerId] = marker;
+        });
+      }
     });
 
     addInitialPositionMarker();
@@ -551,7 +577,23 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  bool startedScanning = false;
+  startScanning() async {
+    print(await DatabaseManager.getAllPolylines());
+    watch.start();
+    initializeLocation();
+  }
+
+  stopScanning() async {
+    print(currPolylinePoints.length);
+    await PolyLinePoint.savePolylinePointsToLocal(currPolylinePoints);
+
+    currPolylinePoints.clear();
+    markers.clear();
+    _polyline.clear();
+    watch.stop();
+    watch.reset();
+    print("Stopped ! ");
+  }
 
   buildStartStopButton() {
     return Positioned(
@@ -560,7 +602,9 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       child: AnimatedButton(
         height: 50,
         width: MediaQuery.of(context).size.width,
-        text: !startedScanning ? 'Start' : 'Stop',
+        text: !startedScanning
+            ? 'Start'
+            : 'Stop : ${watch.elapsed.inSeconds.toString()}',
         isReverse: startedScanning,
         isSelected: startedScanning,
         selectedTextColor: Colors.black,
@@ -577,6 +621,10 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
             fontWeight: FontWeight.w300),
         onPress: () {
           setState(() {
+            if (!startedScanning)
+              startScanning();
+            else
+              stopScanning();
             startedScanning = !startedScanning;
           });
         },

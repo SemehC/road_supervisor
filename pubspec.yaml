@@ -47,6 +47,10 @@ dependencies:
   flutter_login: ^1.1.0
   google_sign_in: ^5.0.4
   flutter_animated_button: ^2.0.0
+  path_provider: ^2.0.2
+  permission_handler: ^8.0.0+2
+  sqflite: ^2.0.0+3
+  
 
 
   # The following adds the Cupertino Icons font to your application.
