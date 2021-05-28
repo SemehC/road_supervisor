@@ -30,7 +30,6 @@ class _AboutWidgetState extends State<AboutWidget> {
     changeText(int i) {
       setState(() {
         name = names[i].toString();
-        print(name);
       });
     }
 

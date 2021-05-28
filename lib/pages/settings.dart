@@ -5,6 +5,7 @@ import 'package:ndialog/ndialog.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:road_supervisor/main.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MySettingsWidget extends StatefulWidget {
   MySettingsWidget({Key? key}) : super(key: key);
@@ -21,7 +22,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   String password = "";
   String confirmPassword = "";
   String selectedLanguage = "";
-  String name = "";
+  String fullName = "";
   List<String> languages = <String>[
     'English',
     'French',
@@ -29,6 +30,23 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   @override
   void initState() {
     super.initState();
+    getUserDataField(currentUser!.uid);
+  }
+
+  Future<void> updateUser(userId, field, value) {
+    return usersRef
+        .doc(userId)
+        .update({field: value})
+        .then((value) => print("User Updated"))
+        .catchError((error) => print("Failed to update user: $error"));
+  }
+
+  getUserDataField(userId) async {
+    await usersRef.doc(userId).get().then((DocumentSnapshot doc) {
+      setState(() {
+        fullName = doc["FullName"].toString();
+      });
+    });
   }
 
   @override
@@ -47,10 +65,11 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
                     color: Theme.of(context).primaryColor,
                     child: ListTile(
                       onTap: () {
+                        print("Fullname: " + fullName);
                         showNamePopup();
                       },
                       title: Text(
-                        "Fehmi Denguir",
+                        '$fullName',
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w500),
                       ),
@@ -373,14 +392,14 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [Text("Enter your name !")]),
             TextFormField(
-                initialValue: name,
+                initialValue: fullName,
                 decoration: InputDecoration(
                     border: new UnderlineInputBorder(
                         borderSide: new BorderSide(
                             color: Theme.of(context).primaryColor)),
                     hintText: 'Name'),
                 onChanged: (value) {
-                  name = value;
+                  fullName = value;
                 }),
           ],
         ),
@@ -401,7 +420,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   }
 
   void checkName() {
-    if (name.length < 3) {
+    if (fullName.length < 3) {
       Fluttertoast.showToast(
           msg: "Name too short !",
           toastLength: Toast.LENGTH_SHORT,
@@ -413,6 +432,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).primaryColor);
+      updateUser(currentUser!.uid, "FullName", fullName);
       Navigator.pop(context);
     }
   }
