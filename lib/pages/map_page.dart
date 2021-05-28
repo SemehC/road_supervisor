@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:camera/camera.dart';
+import 'package:colours/colours.dart';
+import 'package:flutter_animated_button/flutter_animated_button.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:group_button/group_button.dart';
 
@@ -549,11 +551,45 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     );
   }
 
+  bool startedScanning = false;
+
+  buildStartStopButton() {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      child: AnimatedButton(
+        height: 50,
+        width: MediaQuery.of(context).size.width,
+        text: !startedScanning ? 'Start' : 'Stop',
+        isReverse: startedScanning,
+        isSelected: startedScanning,
+        selectedTextColor: Colors.black,
+        backgroundColor: Colours.white,
+        gradient: LinearGradient(colors: [Colours.blue, Colours.cyan]),
+        transitionType: TransitionType.TOP_CENTER_ROUNDER,
+        borderColor: Colors.white,
+        borderRadius: 50,
+        borderWidth: 2,
+        textStyle: TextStyle(
+            fontSize: 28,
+            letterSpacing: 5,
+            color: Colors.deepOrange,
+            fontWeight: FontWeight.w300),
+        onPress: () {
+          setState(() {
+            startedScanning = !startedScanning;
+          });
+        },
+      ),
+    );
+  }
+
   List<Widget> buildMapMainPageUI() {
     return <Widget>[
       gotData ? buildMap() : Text("Fetching location ! "),
       if (showSensors) buildAccelerometerDataDisplay(),
       if (showCamera) buildCameraView(),
+      buildStartStopButton(),
     ];
   }
 

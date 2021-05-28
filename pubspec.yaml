@@ -46,6 +46,7 @@ dependencies:
   geolocator: ^7.0.3
   flutter_login: ^1.1.0
   google_sign_in: ^5.0.4
+  flutter_animated_button: ^2.0.0
 
 
   # The following adds the Cupertino Icons font to your application.
