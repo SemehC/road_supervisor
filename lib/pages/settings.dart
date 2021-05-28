@@ -248,20 +248,29 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
                 },
               ),
             ]),
-            TextButton.icon(
-              onPressed: () {
-                auth.signOut();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(
-                    builder: (BuildContext context) => LoginSignup(),
+            Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.fromLTRB(8, 40, 8, 8),
+                color: Theme.of(context).primaryColor,
+                child: ListTile(
+                  leading: Icon(
+                    Icons.logout_outlined,
+                    color: Theme.of(context).secondaryHeaderColor,
                   ),
-                  (route) => false,
-                );
-              },
-              icon: Icon(Icons.logout, size: 18),
-              label: Text("Log out !"),
-            )
+                  title: Text(
+                    "Log out",
+                    style: TextStyle(
+                        color: Theme.of(context).secondaryHeaderColor),
+                  ),
+                  trailing: Icon(
+                    Icons.keyboard_arrow_right,
+                    color: Theme.of(context).secondaryHeaderColor,
+                  ),
+                  onTap: () {
+                    showLogOutPopup();
+                  },
+                )),
           ],
         ));
   }
@@ -284,6 +293,17 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       width: double.infinity,
       height: 1.0,
       color: Colors.grey,
+    );
+  }
+
+  void logOut() {
+    auth.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (BuildContext context) => LoginSignup(),
+      ),
+      (route) => false,
     );
   }
 
@@ -331,6 +351,33 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
             child: Text("Confirm"),
             onPressed: () {
               checkPassword();
+            }),
+      ],
+    ).show(context, transitionType: DialogTransitionType.Bubble);
+  }
+
+  Future<void> showLogOutPopup() async {
+    await NAlertDialog(
+      dialogStyle: DialogStyle(titleDivider: true),
+      title: Text("Logging out !"),
+      content: Container(
+        height: 30,
+        child: Column(
+          children: [
+            Text("Are you sure you want to log out ?"),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        FlatButton(
+            child: Text("No"),
+            onPressed: () {
+              Navigator.pop(context);
+            }),
+        FlatButton(
+            child: Text("Yes"),
+            onPressed: () {
+              logOut();
             }),
       ],
     ).show(context, transitionType: DialogTransitionType.Bubble);
