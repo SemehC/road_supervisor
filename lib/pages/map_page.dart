@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
@@ -20,7 +21,7 @@ import 'package:lottie/lottie.dart' as lottie;
 import 'package:geolocator/geolocator.dart';
 
 import 'package:ndialog/ndialog.dart';
-
+import 'package:tflite_flutter/tflite_flutter.dart';
 import '../main.dart';
 
 class MapPage extends StatefulWidget {
@@ -104,12 +105,31 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   List<PolyLinePoint> currPolylinePoints = [];
 
+  /* TENSORFLOW STUFF */
+  bool initializedPredictors = false;
+  late Interpreter _sensorsPredictor;
+  late Interpreter _imagesPredictor;
+
+  int currentSensorPrediction = -1;
+
   @override
   void initState() {
     super.initState();
+    initializeMachineLearningModels();
     fetchCamera();
     initializeLocation();
     initializeSensors();
+  }
+
+  initializeMachineLearningModels() async {
+    print("Initializing models");
+    _sensorsPredictor =
+        await Interpreter.fromAsset("tfmodels/roadPrediction.tflite");
+    //_imagesPredictor = await Interpreter.fromAsset("tfmodels/model.tflite");
+    setState(() {
+      print("Initializde models");
+      initializedPredictors = true;
+    });
   }
 
   fetchCamera() {
@@ -131,8 +151,22 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   initializeSensors() {
     userAccelerometerEvents.listen((UserAccelerometerEvent event) {
       setState(() {
+        if (initializedPredictors) {
+          // For ex: if input tensor shape [1,5] and type is float32
+          var input = [
+            [event.x, event.y, event.z]
+          ];
+
+          // if output tensor shape [1,2] and type is float32
+          var output = [0, 1, 2];
+
+          _sensorsPredictor.run(input, output);
+          print("Sensors prediciton : $output ");
+        }
+
         accelerometerEvent = event;
       });
+      print(event);
     });
     setState(() {
       initializedSensors = true;
