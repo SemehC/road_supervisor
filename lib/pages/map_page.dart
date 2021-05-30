@@ -1,7 +1,6 @@
-import 'dart:async';
-import 'dart:ffi';
 import 'dart:math';
 
+import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:camera/camera.dart';
 import 'package:colours/colours.dart';
 import 'package:flutter_animated_button/flutter_animated_button.dart';
@@ -11,9 +10,9 @@ import 'package:group_button/group_button.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/polyline_point.dart';
+import 'package:road_supervisor/models/sensors_predictor.dart';
 import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -21,7 +20,6 @@ import 'package:lottie/lottie.dart' as lottie;
 import 'package:geolocator/geolocator.dart';
 
 import 'package:ndialog/ndialog.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
 import '../main.dart';
 
 class MapPage extends StatefulWidget {
@@ -106,30 +104,17 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   List<PolyLinePoint> currPolylinePoints = [];
 
   /* TENSORFLOW STUFF */
-  bool initializedPredictors = false;
-  late Interpreter _sensorsPredictor;
-  late Interpreter _imagesPredictor;
+  bool initializedPredictors = true;
 
   int currentSensorPrediction = -1;
 
   @override
   void initState() {
     super.initState();
-    initializeMachineLearningModels();
+    SensorsPredictor.initializePredictor();
     fetchCamera();
     initializeLocation();
     initializeSensors();
-  }
-
-  initializeMachineLearningModels() async {
-    print("Initializing models");
-    _sensorsPredictor =
-        await Interpreter.fromAsset("tfmodels/roadPrediction.tflite");
-    //_imagesPredictor = await Interpreter.fromAsset("tfmodels/model.tflite");
-    setState(() {
-      print("Initializde models");
-      initializedPredictors = true;
-    });
   }
 
   fetchCamera() {
@@ -156,17 +141,13 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           var input = [
             [event.x, event.y, event.z]
           ];
-
-          // if output tensor shape [1,2] and type is float32
-          var output = [0, 1, 2];
-
-          _sensorsPredictor.run(input, output);
-          print("Sensors prediciton : $output ");
+          setState(() {
+            currentSensorPrediction = SensorsPredictor.predict(input);
+          });
         }
 
         accelerometerEvent = event;
       });
-      print(event);
     });
     setState(() {
       initializedSensors = true;
@@ -227,7 +208,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         polylineId: PolylineId("${id + 1}"),
         visible: true,
         points: currentPoints,
-        color: Colors.blue,
+        color: Colors.red,
       ));
     }
     if (type == 1) {
@@ -247,7 +228,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         polylineId: PolylineId("${id + 1}"),
         visible: true,
         points: currentPoints,
-        color: Colors.red,
+        color: Colors.blue,
       ));
     }
   }
@@ -272,9 +253,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           position.longitude,
         );
 
-        int x = rng.nextInt(3);
-
-        if (x == 0) {
+        if (currentSensorPrediction == 0) {
           if (currRoadType != 0) {
             currentPoints = [];
             currPolylinePoints.add(PolyLinePoint(
@@ -288,7 +267,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
           currentPoints.add(currPos);
         }
-        if (x == 1) {
+        if (currentSensorPrediction == 1) {
           if (currRoadType != 1) {
             currentPoints = [];
             currPolylinePoints.add(PolyLinePoint(
@@ -302,7 +281,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
           currentPoints.add(currPos);
         }
-        if (x == 2) {
+        if (currentSensorPrediction == 2) {
           if (currRoadType != 2) {
             currentPoints = [];
             currPolylinePoints.add(PolyLinePoint(
@@ -629,13 +608,26 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     print("Stopped ! ");
   }
 
+  buildPredictionPanel() {
+    return Positioned(
+      bottom: 60,
+      left: MediaQuery.of(context).size.width / 4,
+      child: Text(
+        currentSensorPrediction != -1
+            ? SensorsPredictor.labels[currentSensorPrediction]
+            : "None",
+        style: TextStyle(fontSize: 20),
+      ),
+    );
+  }
+
   buildStartStopButton() {
     return Positioned(
       bottom: 0,
-      left: 0,
+      left: MediaQuery.of(context).size.width / 4,
       child: AnimatedButton(
         height: 50,
-        width: MediaQuery.of(context).size.width,
+        width: MediaQuery.of(context).size.width / 2,
         text: !startedScanning
             ? 'Start'
             : 'Stop : ${watch.elapsed.inSeconds.toString()}',
@@ -671,6 +663,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       gotData ? buildMap() : Text("Fetching location ! "),
       if (showSensors) buildAccelerometerDataDisplay(),
       if (showCamera) buildCameraView(),
+      buildPredictionPanel(),
       buildStartStopButton(),
     ];
   }
