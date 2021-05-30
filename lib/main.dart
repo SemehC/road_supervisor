@@ -9,6 +9,8 @@ import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
 import 'package:road_supervisor/pages/main_layout.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:road_supervisor/generated/codegen_loader.g.dart';
 
 var usersRef = FirebaseFirestore.instance.collection("users");
 final GoogleSignIn googleSignIn = GoogleSignIn();
@@ -24,7 +26,16 @@ void main() async {
   await Firebase.initializeApp();
   cameras = await availableCameras();
   await checkIfLoggedIn();
-  runApp(MyApp());
+  await EasyLocalization.ensureInitialized();
+
+  runApp(
+    EasyLocalization(
+        supportedLocales: [Locale('en', 'US'), Locale('fr', 'FR')],
+        path:
+            'assets/translations', // <-- change the path of the translation files
+        fallbackLocale: Locale('en', 'US'),
+        child: MyApp()),
+  );
 }
 
 bool isLoggedIn = false;
@@ -40,7 +51,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Road Supervisor',
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
+      title: LocaleKeys.AppName.tr(),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

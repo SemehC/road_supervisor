@@ -21,6 +21,8 @@ import 'package:geolocator/geolocator.dart';
 
 import 'package:ndialog/ndialog.dart';
 import '../main.dart';
+import 'package:road_supervisor/generated/codegen_loader.g.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class MapPage extends StatefulWidget {
   MapPage({Key? key}) : super(key: key);
@@ -63,9 +65,9 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   int currentMapType = 0;
   //Map type dropdown
   List<String> mapTypeDropdownItems = [
-    "Normal",
+    LocaleKeys.Normal.tr(),
     "Satellite",
-    "Hybrid",
+    LocaleKeys.Hybrid.tr(),
     "Terrain"
   ];
   //Traffic enabled status
@@ -165,13 +167,16 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
               children: [
                 ListTile(
                     title: Text(
-                  "Accelerometer sensor : ",
+                  LocaleKeys.AccelerometerSensor.tr(),
                 )),
                 ListTile(
                   leading: Icon(Icons.sensors),
                   title: initializedSensors
                       ? Text(
-                          "X-Axis : " + accelerometerEvent.x.toStringAsFixed(1),
+                          "X-" +
+                              LocaleKeys.Axis.tr() +
+                              " : " +
+                              accelerometerEvent.x.toStringAsFixed(1),
                         )
                       : Text(""),
                 ),
@@ -179,7 +184,10 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   leading: Icon(Icons.sensors),
                   title: initializedSensors
                       ? Text(
-                          "Y-Axis : " + accelerometerEvent.y.toStringAsFixed(1),
+                          "Y-" +
+                              LocaleKeys.Axis.tr() +
+                              " : " +
+                              accelerometerEvent.y.toStringAsFixed(1),
                         )
                       : Text(""),
                 ),
@@ -187,7 +195,10 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   leading: Icon(Icons.sensors),
                   title: initializedSensors
                       ? Text(
-                          "Z-Axis : " + accelerometerEvent.z.toStringAsFixed(1),
+                          "Z-" +
+                              LocaleKeys.Axis.tr() +
+                              " : " +
+                              accelerometerEvent.z.toStringAsFixed(1),
                         )
                       : Text(""),
                 ),
@@ -297,13 +308,14 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         }
         prevPos = currPos;
         _googleMapController.animateCamera(CameraUpdate.newLatLng(currPos));
-        final MarkerId markerId = MarkerId("CurrPos");
+        final MarkerId markerId = MarkerId(LocaleKeys.CurrentPosition.tr());
 
         final Marker marker = Marker(
           markerId: markerId,
           position: currPos,
           infoWindow: InfoWindow(
-              title: "Current Position", snippet: 'Current position'),
+              title: LocaleKeys.CurrentPosition.tr(),
+              snippet: LocaleKeys.CurrentPosition.tr()),
         );
 
         setState(() {
@@ -320,15 +332,16 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   }
 
   addInitialPositionMarker() {
-    final MarkerId markerId = MarkerId("initialPosition");
+    final MarkerId markerId = MarkerId(LocaleKeys.InitialPosition.tr());
     final Marker marker = Marker(
       markerId: markerId,
       position: LatLng(
         _initialPosition.latitude,
         _initialPosition.longitude,
       ),
-      infoWindow:
-          InfoWindow(title: "initialPosition", snippet: 'Initial Position'),
+      infoWindow: InfoWindow(
+          title: LocaleKeys.InitialPosition.tr(),
+          snippet: LocaleKeys.InitialPosition.tr()),
     );
 
     setState(() {
@@ -362,7 +375,9 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
-          Flexible(child: Text("Map Type", overflow: TextOverflow.ellipsis)),
+          Flexible(
+              child: Text(LocaleKeys.MapType.tr(),
+                  overflow: TextOverflow.ellipsis)),
           const SizedBox(
             width: 12,
             height: 17,
@@ -382,7 +397,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   buildMapSettingsPopup() async {
     await NDialog(
       dialogStyle: DialogStyle(titleDivider: true),
-      title: Text("Map Settings"),
+      title: Text(LocaleKeys.MapSettings.tr()),
       content: Container(
         height: 200,
         child: Column(
@@ -391,7 +406,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           children: [
             Row(
               children: [
-                Text("Map Type"),
+                Text(LocaleKeys.MapType.tr()),
                 MenuButton(
                   child: normalChildButton,
                   items: mapTypeDropdownItems,
@@ -416,9 +431,11 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
             SizedBox(height: 20),
             Row(
               children: [
-                Text("Traffic "),
+                Text(LocaleKeys.Traffic.tr()),
                 GroupButton(
-                  selectedButtons: [trafficEnabled ? "Show" : "Hide"],
+                  selectedButtons: [
+                    trafficEnabled ? LocaleKeys.Show.tr() : LocaleKeys.Hide.tr()
+                  ],
                   onSelected: (index, isSelected) {
                     if (index == 0)
                       setState(() {
@@ -429,7 +446,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                         trafficEnabled = false;
                       });
                   },
-                  buttons: ["Show", "Hide"],
+                  buttons: [LocaleKeys.Show.tr(), LocaleKeys.Hide.tr()],
                 ),
               ],
             ),
@@ -481,7 +498,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
               mapIsMainPage = !mapIsMainPage;
             });
           else {
-            Fluttertoast.showToast(msg: "Enable camera first");
+            Fluttertoast.showToast(msg: LocaleKeys.EnableCamera.tr());
           }
         }
       },
@@ -629,8 +646,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         height: 50,
         width: MediaQuery.of(context).size.width / 2,
         text: !startedScanning
-            ? 'Start'
-            : 'Stop : ${watch.elapsed.inSeconds.toString()}',
+            ? LocaleKeys.Start.tr()
+            : LocaleKeys.Stop.tr() + ': ${watch.elapsed.inSeconds.toString()}',
         isReverse: startedScanning,
         isSelected: startedScanning,
         selectedTextColor: Colors.black,
@@ -660,7 +677,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   List<Widget> buildMapMainPageUI() {
     return <Widget>[
-      gotData ? buildMap() : Text("Fetching location ! "),
+      gotData ? buildMap() : Text(LocaleKeys.FetchingLocation.tr()),
       if (showSensors) buildAccelerometerDataDisplay(),
       if (showCamera) buildCameraView(),
       buildPredictionPanel(),

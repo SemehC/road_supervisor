@@ -4,6 +4,8 @@ import 'package:horizontal_card_pager/horizontal_card_pager.dart';
 import 'package:horizontal_card_pager/card_item.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:ndialog/ndialog.dart';
+import 'package:road_supervisor/generated/codegen_loader.g.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AboutWidget extends StatefulWidget {
   AboutWidget({Key? key}) : super(key: key);
@@ -57,7 +59,7 @@ class _AboutWidgetState extends State<AboutWidget> {
               SizedBox(
                 width: double.infinity,
                 child: TextLiquidFill(
-                  text: 'Our Team',
+                  text: LocaleKeys.OurTeam.tr(),
                   waveColor: Colors.blueAccent,
                   boxBackgroundColor: Theme.of(context).colorScheme.surface,
                   textStyle: TextStyle(

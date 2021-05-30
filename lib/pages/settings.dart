@@ -2,18 +2,19 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animated_button/flutter_animated_button.dart';
+
 import 'package:flutter_switch/flutter_switch.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ndialog/ndialog.dart';
 import 'package:menu_button/menu_button.dart';
+import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/main.dart';
 import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart' as lottie;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class MySettingsWidget extends StatefulWidget {
   MySettingsWidget({Key? key}) : super(key: key);
@@ -38,7 +39,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   String? photoUrl = null;
   List<String> languages = <String>[
     'English',
-    'French',
+    'Français',
   ];
   bool gotUserData = false;
 
@@ -59,16 +60,50 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
             pref.getBool(_MySettingsWidgetState.RECEIVE_NOTIFICATIONS) ?? false;
         selectedLanguage =
             pref.getString(_MySettingsWidgetState.LANGUAGE) ?? languages[0];
+        switch (selectedLanguage) {
+          case "English":
+            {
+              context.locale = Locale('en', 'US');
+            }
+            break;
+          case "Français":
+            {
+              context.locale = Locale('fr', 'FR');
+            }
+            break;
+          default:
+            {
+              context.locale = Locale('en', 'US');
+            }
+            break;
+        }
       });
     });
   }
 
-  setString(String key, String value) {
+  setLanguage(String value) {
     _prefs.then((SharedPreferences pref) {
       setState(() {
-        pref.setString(key, value);
+        pref.setString(_MySettingsWidgetState.LANGUAGE, value);
       });
     });
+    switch (value) {
+      case "English":
+        {
+          context.locale = Locale('en', 'US');
+        }
+        break;
+      case "Français":
+        {
+          context.locale = Locale('fr', 'FR');
+        }
+        break;
+      default:
+        {
+          context.locale = Locale('en', 'US');
+        }
+        break;
+    }
   }
 
   setBool(String key, bool value) {
@@ -124,7 +159,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
         Navigator.pop(context);
       });
     } else {
-      Fluttertoast.showToast(msg: "Canceled");
+      Fluttertoast.showToast(msg: LocaleKeys.Canceled.tr());
     }
   }
 
@@ -145,12 +180,12 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       ),
       actions: [
         FlatButton(
-            child: Text("Cancel"),
+            child: Text(LocaleKeys.Cancel.tr()),
             onPressed: () {
               Navigator.pop(context);
             }),
         FlatButton(
-            child: Text("Change"),
+            child: Text(LocaleKeys.Change.tr()),
             onPressed: () {
               handleChangePicture();
             }),
@@ -203,7 +238,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
               Icons.lock_outline,
               color: Theme.of(context).primaryColor,
             ),
-            title: Text("Change Password"),
+            title: Text(LocaleKeys.ChangePassword.tr()),
             trailing: Icon(Icons.keyboard_arrow_right),
             onTap: () {
               showPasswordPopup();
@@ -215,7 +250,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
               Icons.mail_outline,
               color: Theme.of(context).primaryColor,
             ),
-            title: Text("Change E-mail"),
+            title: Text(LocaleKeys.ChangeEmail.tr()),
             trailing: Icon(Icons.keyboard_arrow_right),
             onTap: () {
               showEmailPopup();
@@ -227,7 +262,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
               Icons.language_outlined,
               color: Theme.of(context).primaryColor,
             ),
-            title: Text("Change Language"),
+            title: Text(LocaleKeys.ChangeLanguage.tr()),
             trailing: Icon(Icons.keyboard_arrow_right),
             onTap: () {
               showLanguagePopup();
@@ -241,7 +276,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   buildNotificationsSetting() {
     return Container(
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text("Receive notifications",
+        Text(LocaleKeys.ReceiveNotifications.tr(),
             style: TextStyle(
               fontSize: 16.5,
             )),
@@ -255,8 +290,8 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           padding: 8.0,
           inactiveColor: Theme.of(context).primaryColor,
           activeColor: Theme.of(context).primaryColor,
-          activeText: "Yes",
-          inactiveText: "No",
+          activeText: LocaleKeys.Yes.tr(),
+          inactiveText: LocaleKeys.No.tr(),
           showOnOff: true,
           onToggle: (val) {
             setState(() {
@@ -273,7 +308,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
 
   buildSpeedSetting() {
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text("Speed Unit",
+      Text(LocaleKeys.SpeedUnit.tr(),
           style: TextStyle(
             fontSize: 16.5,
           )),
@@ -311,7 +346,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
             color: Theme.of(context).secondaryHeaderColor,
           ),
           title: Text(
-            "Log out",
+            LocaleKeys.LogOut.tr(),
             style: TextStyle(color: Theme.of(context).secondaryHeaderColor),
           ),
           trailing: Icon(
@@ -335,7 +370,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           buildAccountSettingsCard(),
           const SizedBox(height: 10),
           Text(
-            "Notification Settings",
+            LocaleKeys.NotificationSettings.tr(),
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -344,7 +379,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           buildNotificationsSetting(),
           const SizedBox(height: 10),
           Text(
-            "Speed Settings",
+            LocaleKeys.SpeedSettings.tr(),
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -392,18 +427,18 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   Future<void> showPasswordPopup() async {
     await NAlertDialog(
       dialogStyle: DialogStyle(titleDivider: true),
-      title: Text("Changing Password"),
+      title: Text(LocaleKeys.ChangingPassword.tr()),
       content: Container(
-        height: 115,
+        height: 135,
         child: Column(
           children: [
-            Text("New password must be atleast 8 characters"),
+            Text(LocaleKeys.Password8Chars.tr()),
             TextField(
               decoration: InputDecoration(
                   border: new UnderlineInputBorder(
                       borderSide: new BorderSide(
                           color: Theme.of(context).primaryColor)),
-                  hintText: 'Password'),
+                  hintText: LocaleKeys.Password.tr()),
               obscureText: true,
               onChanged: (value) {
                 password = value;
@@ -414,7 +449,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
                   border: new UnderlineInputBorder(
                       borderSide: new BorderSide(
                           color: Theme.of(context).primaryColor)),
-                  hintText: 'Confirm password'),
+                  hintText: LocaleKeys.ConfirmPassword.tr()),
               obscureText: true,
               onChanged: (value) {
                 confirmPassword = value;
@@ -425,12 +460,12 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       ),
       actions: <Widget>[
         FlatButton(
-            child: Text("Cancel"),
+            child: Text(LocaleKeys.Cancel.tr()),
             onPressed: () {
               Navigator.pop(context);
             }),
         FlatButton(
-            child: Text("Confirm"),
+            child: Text(LocaleKeys.Confirm.tr()),
             onPressed: () {
               checkPassword();
             }),
@@ -441,23 +476,23 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   Future<void> showLogOutPopup() async {
     await NAlertDialog(
       dialogStyle: DialogStyle(titleDivider: true),
-      title: Text("Logging out !"),
+      title: Text(LocaleKeys.LoggingOut.tr()),
       content: Container(
         height: 30,
         child: Column(
           children: [
-            Text("Are you sure you want to log out ?"),
+            Text(LocaleKeys.LogOutPrompt.tr()),
           ],
         ),
       ),
       actions: <Widget>[
         FlatButton(
-            child: Text("No"),
+            child: Text(LocaleKeys.No.tr()),
             onPressed: () {
               Navigator.pop(context);
             }),
         FlatButton(
-            child: Text("Yes"),
+            child: Text(LocaleKeys.Yes.tr()),
             onPressed: () {
               logOut();
             }),
@@ -468,12 +503,12 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   Future<void> showEmailPopup() async {
     await NAlertDialog(
       dialogStyle: DialogStyle(titleDivider: true),
-      title: Text("Changing Email"),
+      title: Text(LocaleKeys.ChangingEmail.tr()),
       content: Container(
         height: 70,
         child: Column(
           children: [
-            Text("Enter the new email you want to add !"),
+            Text(LocaleKeys.EnterEmail.tr()),
             TextFormField(
               initialValue: email,
               decoration: InputDecoration(
@@ -490,12 +525,12 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       ),
       actions: <Widget>[
         FlatButton(
-            child: Text("Cancel"),
+            child: Text(LocaleKeys.Cancel.tr()),
             onPressed: () {
               Navigator.pop(context);
             }),
         FlatButton(
-            child: Text("Confirm"),
+            child: Text(LocaleKeys.Confirm.tr()),
             onPressed: () {
               checkEmail();
             }),
@@ -531,14 +566,14 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     );
     await NAlertDialog(
       dialogStyle: DialogStyle(titleDivider: true),
-      title: Text("Changing Language"),
+      title: Text(LocaleKeys.ChangingLanguage.tr()),
       content: Container(
         height: 80,
         child: Column(
           children: [
             Container(
                 margin: const EdgeInsets.only(bottom: 15),
-                child: Text("Choose the Language you want !")),
+                child: Text(LocaleKeys.EnterLanguage.tr())),
             MenuButton<String>(
               child: normalChildButton,
               items: languages,
@@ -555,7 +590,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
               onItemSelected: (String value) {
                 setState(() {
                   selectedLanguage = value;
-                  setString(_MySettingsWidgetState.LANGUAGE, selectedLanguage);
+                  setLanguage(selectedLanguage);
                   Navigator.pop(context);
                 });
               },
@@ -565,7 +600,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       ),
       actions: <Widget>[
         FlatButton(
-            child: Text("Cancel"),
+            child: Text(LocaleKeys.Cancel.tr()),
             onPressed: () {
               Navigator.pop(context);
             }),
@@ -576,14 +611,14 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   Future<void> showNamePopup() async {
     await NAlertDialog(
       dialogStyle: DialogStyle(titleDivider: true),
-      title: Text("Changing Name"),
+      title: Text(LocaleKeys.ChangingName.tr()),
       content: Container(
         height: 70,
         child: Column(
           children: [
             Row(
                 mainAxisAlignment: MainAxisAlignment.start,
-                children: [Text("Enter your name !")]),
+                children: [Text(LocaleKeys.EnterName.tr())]),
             TextFormField(
                 initialValue: fullName,
                 decoration: InputDecoration(
@@ -601,12 +636,12 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       ),
       actions: <Widget>[
         FlatButton(
-            child: Text("Cancel"),
+            child: Text(LocaleKeys.Cancel.tr()),
             onPressed: () {
               Navigator.pop(context);
             }),
         FlatButton(
-            child: Text("Confirm"),
+            child: Text(LocaleKeys.Confirm.tr()),
             onPressed: () {
               checkName();
             }),
@@ -617,13 +652,13 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   void checkName() {
     if (fullName.length < 3) {
       Fluttertoast.showToast(
-          msg: "Name too short !",
+          msg: LocaleKeys.ShortName.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).errorColor);
     } else {
       Fluttertoast.showToast(
-          msg: "Name changed successfully !",
+          msg: LocaleKeys.NameChanged.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).primaryColor);
@@ -635,7 +670,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   void checkPassword() {
     if (confirmPassword == password && password.length >= 8) {
       Fluttertoast.showToast(
-          msg: "Password changed successfully !",
+          msg: LocaleKeys.PasswordChanged.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).primaryColor);
@@ -643,19 +678,19 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       Navigator.pop(context);
     } else if (confirmPassword != password && password.length >= 8) {
       Fluttertoast.showToast(
-          msg: "Passwords don't match !",
+          msg: LocaleKeys.PasswordMatch.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).errorColor);
     } else if (confirmPassword == password && password.length < 8) {
       Fluttertoast.showToast(
-          msg: "Password too short !",
+          msg: LocaleKeys.ShortPassword.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).errorColor);
     } else {
       Fluttertoast.showToast(
-          msg: "Verify your password !",
+          msg: LocaleKeys.VerifyPassword.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).errorColor);
@@ -670,7 +705,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       try {
         await auth.currentUser!.updateEmail(email);
         Fluttertoast.showToast(
-            msg: "Email changed successfully !",
+            msg: LocaleKeys.EmailChanged.tr(),
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.BOTTOM,
             backgroundColor: Theme.of(context).primaryColor);
@@ -684,7 +719,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       Navigator.pop(context);
     } else {
       Fluttertoast.showToast(
-          msg: "Verify your email !",
+          msg: LocaleKeys.VerifyEmail.tr(),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).errorColor);

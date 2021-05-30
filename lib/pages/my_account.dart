@@ -1,7 +1,9 @@
 import 'package:colours/colours.dart';
 import 'package:flutter/material.dart';
+import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class MyAccoutWidget extends StatefulWidget {
   MyAccoutWidget({Key? key}) : super(key: key);
@@ -40,14 +42,14 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  'User Name',
+                  LocaleKeys.UserName.tr(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 25,
                   ),
                 ),
                 Text(
-                  'Location',
+                  LocaleKeys.Location.tr(),
                 )
               ],
             ),

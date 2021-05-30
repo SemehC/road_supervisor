@@ -5,6 +5,8 @@ import 'package:road_supervisor/pages/map_page.dart';
 import 'package:road_supervisor/pages/my_account.dart';
 import 'package:road_supervisor/pages/about.dart';
 import 'settings.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:road_supervisor/generated/codegen_loader.g.dart';
 
 class MainLayout extends StatefulWidget {
   MainLayout({Key? key}) : super(key: key);
@@ -37,7 +39,7 @@ class _MainLayoutState extends State<MainLayout> {
   buildAppBar() {
     return AppBar(
       title: Text(
-        "Road Supervisor",
+        LocaleKeys.AppName.tr(),
         style: TextStyle(),
       ),
     );
@@ -52,11 +54,15 @@ class _MainLayoutState extends State<MainLayout> {
             duration: Duration(milliseconds: 500), curve: Curves.easeInOut);
       },
       items: <BottomNavyBarItem>[
-        BottomNavyBarItem(title: Text('Map'), icon: Icon(Icons.map)),
         BottomNavyBarItem(
-            title: Text('My Account'), icon: Icon(Icons.account_box_rounded)),
-        BottomNavyBarItem(title: Text('Settings'), icon: Icon(Icons.settings)),
-        BottomNavyBarItem(title: Text('About'), icon: Icon(Icons.info)),
+            title: Text(LocaleKeys.Map.tr()), icon: Icon(Icons.map)),
+        BottomNavyBarItem(
+            title: Text(LocaleKeys.MyAccount.tr()),
+            icon: Icon(Icons.account_box_rounded)),
+        BottomNavyBarItem(
+            title: Text(LocaleKeys.Settings.tr()), icon: Icon(Icons.settings)),
+        BottomNavyBarItem(
+            title: Text(LocaleKeys.About.tr()), icon: Icon(Icons.info)),
       ],
     );
   }
