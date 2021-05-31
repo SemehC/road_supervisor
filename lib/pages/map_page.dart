@@ -1,6 +1,6 @@
 import 'dart:math';
+import 'dart:typed_data';
 
-import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:camera/camera.dart';
 import 'package:colours/colours.dart';
 import 'package:flutter_animated_button/flutter_animated_button.dart';
@@ -10,6 +10,9 @@ import 'package:group_button/group_button.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:floating_menu_panel/floating_menu_panel.dart';
 import 'package:flutter/material.dart';
+import 'package:road_supervisor/models/ImageUtils.dart';
+import 'package:road_supervisor/models/classifier.dart';
+import 'package:road_supervisor/models/classifier_quant.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/polyline_point.dart';
 import 'package:road_supervisor/models/sensors_predictor.dart';
@@ -20,9 +23,13 @@ import 'package:lottie/lottie.dart' as lottie;
 import 'package:geolocator/geolocator.dart';
 
 import 'package:ndialog/ndialog.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
 import '../main.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'dart:math';
+import 'package:image/image.dart' as img;
+import 'package:tflite_flutter_helper/tflite_flutter_helper.dart';
 
 class MapPage extends StatefulWidget {
   MapPage({Key? key}) : super(key: key);
@@ -81,7 +88,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   bool initializedSensors = false;
   bool showSensors = false;
   late UserAccelerometerEvent accelerometerEvent;
-
+  var oldTimeCheckpoint = new DateTime.now().millisecondsSinceEpoch;
   /*
     Camera
   */
@@ -109,7 +116,11 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   bool initializedPredictors = true;
 
   int currentSensorPrediction = -1;
-
+  var oldTime = DateTime.now().millisecondsSinceEpoch;
+  late Classifier _classifier;
+  var MODEL_PATH = "assets/roadImageClassificationModel.tflite";
+  var LABELS_PATH = "assets/labels.txt";
+  Category? category = Category("Bituminous", 1);
   @override
   void initState() {
     super.initState();
@@ -117,15 +128,30 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     fetchCamera();
     initializeLocation();
     initializeSensors();
+    _classifier = ClassifierQuant();
+  }
+
+  void _predict(img.Image imageInput) async {
+    var pred = _classifier.predict(imageInput);
+    setState(() {
+      this.category = pred;
+    });
   }
 
   fetchCamera() {
-    _cameraController = CameraController(cameras[0], ResolutionPreset.max);
+    _cameraController = CameraController(cameras[0], ResolutionPreset.medium);
     _cameraController.initialize().then((_) {
       if (!mounted) {
         return;
       }
       setState(() {});
+      _cameraController.startImageStream((CameraImage img) async {
+        var currentTime = new DateTime.now().millisecondsSinceEpoch;
+        if (currentTime - oldTimeCheckpoint >= 2000) {
+          _predict(ImageUtils.convertYUV420ToImage(img));
+          oldTimeCheckpoint = currentTime;
+        }
+      });
     });
   }
 
@@ -631,7 +657,9 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       left: MediaQuery.of(context).size.width / 4,
       child: Text(
         currentSensorPrediction != -1
-            ? SensorsPredictor.labels[currentSensorPrediction]
+            ? category!.label.split(" ").last +
+                "  " +
+                SensorsPredictor.labels[currentSensorPrediction]
             : "None",
         style: TextStyle(fontSize: 20),
       ),

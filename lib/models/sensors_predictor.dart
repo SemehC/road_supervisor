@@ -22,7 +22,7 @@ class SensorsPredictor {
       print("Still loading interpreter");
       return -1;
     } else {
-      print("predicting");
+      // print("predicting");
       var output = List.filled(1 * 3, 0).reshape([1, 3]);
 
       interpreter!.run(input, output);

@@ -448,6 +448,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "4.0.0"
+  image:
+    dependency: transitive
+    description:
+      name: image
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.2"
   image_picker:
     dependency: "direct main"
     description:
@@ -595,6 +602,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "3.5.0"
+  petitparser:
+    dependency: transitive
+    description:
+      name: petitparser
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.1.0"
   pigment:
     dependency: transitive
     description:
@@ -774,7 +788,14 @@ packages:
       name: tflite_flutter
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.7.0"
+    version: "0.8.0"
+  tflite_flutter_helper:
+    dependency: "direct main"
+    description:
+      name: tflite_flutter_helper
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.2.0"
   transformer_page_view:
     dependency: transitive
     description:
@@ -782,6 +803,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.1.6"
+  tuple:
+    dependency: transitive
+    description:
+      name: tuple
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.0.0"
   typed_data:
     dependency: transitive
     description:
@@ -810,6 +838,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.2.0"
+  xml:
+    dependency: transitive
+    description:
+      name: xml
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "5.1.1"
 sdks:
   dart: ">=2.13.0 <3.0.0"
   flutter: ">=1.26.0-17.6.pre"
