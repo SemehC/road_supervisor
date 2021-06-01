@@ -10,6 +10,7 @@ import 'package:ndialog/ndialog.dart';
 import 'package:menu_button/menu_button.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/main.dart';
+import 'package:road_supervisor/models/shared_prefs_manager.dart';
 import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
 import 'package:lottie/lottie.dart' as lottie;
@@ -28,7 +29,6 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   static const LANGUAGE = "language";
   static const SPEED_UNIT = "speedUnit";
   final scaffoldKey = GlobalKey<ScaffoldState>();
-  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   bool speedUnit = false;
   bool receiveNotifications = false;
   String email = "";
@@ -48,45 +48,44 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   void initState() {
     super.initState();
     getUserDataField();
-    getLocalSettings();
+    WidgetsBinding.instance!.addPostFrameCallback((_) => getLocalSettings());
   }
 
   getLocalSettings() {
-    _prefs.then((SharedPreferences pref) {
-      setState(() {
-        //speed unit ==> kmh = true, mph = false
-        speedUnit = pref.getBool(_MySettingsWidgetState.SPEED_UNIT) ?? true;
-        receiveNotifications =
-            pref.getBool(_MySettingsWidgetState.RECEIVE_NOTIFICATIONS) ?? false;
-        selectedLanguage =
-            pref.getString(_MySettingsWidgetState.LANGUAGE) ?? languages[0];
-        switch (selectedLanguage) {
-          case "English":
-            {
-              context.locale = Locale('en', 'US');
-            }
-            break;
-          case "Français":
-            {
-              context.locale = Locale('fr', 'FR');
-            }
-            break;
-          default:
-            {
-              context.locale = Locale('en', 'US');
-            }
-            break;
-        }
-      });
+    setState(() {
+      //speed unit ==> kmh = true, mph = false
+      speedUnit = SharedPrefsManager.getBool(
+          key: _MySettingsWidgetState.SPEED_UNIT, defaultVal: true);
+      receiveNotifications = SharedPrefsManager.getBool(
+          key: _MySettingsWidgetState.RECEIVE_NOTIFICATIONS, defaultVal: false);
+      selectedLanguage = SharedPrefsManager.getString(
+          key: _MySettingsWidgetState.LANGUAGE, defaultVal: languages[0]);
+      switch (selectedLanguage) {
+        case "English":
+          {
+            context.locale = Locale('en', 'US');
+          }
+          break;
+        case "Français":
+          {
+            context.locale = Locale('fr', 'FR');
+          }
+          break;
+        default:
+          {
+            context.locale = Locale('en', 'US');
+          }
+          break;
+      }
     });
   }
 
   setLanguage(String value) {
-    _prefs.then((SharedPreferences pref) {
-      setState(() {
-        pref.setString(_MySettingsWidgetState.LANGUAGE, value);
-      });
+    setState(() {
+      SharedPrefsManager.setString(
+          key: _MySettingsWidgetState.LANGUAGE, val: value);
     });
+
     switch (value) {
       case "English":
         {
@@ -107,10 +106,8 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   }
 
   setBool(String key, bool value) {
-    _prefs.then((SharedPreferences pref) {
-      setState(() {
-        pref.setBool(key, value);
-      });
+    setState(() {
+      SharedPrefsManager.setBool(key: key, val: value);
     });
   }
 
@@ -172,9 +169,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
         height: 300,
         child: Image(
           image: NetworkImage(
-            photoUrl != "none"
-                ? photoUrl!
-                : 'https://picsum.photos/seed/867/600',
+            photoUrl != "" ? photoUrl! : 'https://picsum.photos/seed/867/600',
           ),
         ),
       ),
@@ -212,9 +207,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           },
           child: CircleAvatar(
             backgroundImage: NetworkImage(
-              photoUrl != "none"
-                  ? photoUrl!
-                  : 'https://picsum.photos/seed/867/600',
+              photoUrl != "" ? photoUrl! : 'https://picsum.photos/seed/867/600',
             ),
           ),
         ),

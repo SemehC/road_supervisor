@@ -3,7 +3,8 @@ import 'package:road_supervisor/main.dart';
 import 'package:road_supervisor/models/user_profile.dart';
 
 class UserManager {
-  static UserProfile? currentUserProfile;
+  static UserProfile currentUserProfile =
+      UserProfile(photoUrl: "", fullName: "", carType: "");
   static User? currentUser;
 
   static fetchUserInfo() async {

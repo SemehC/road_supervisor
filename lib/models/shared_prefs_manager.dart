@@ -1,0 +1,26 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SharedPrefsManager {
+  static late SharedPreferences _prefs;
+
+  static initializeSharedPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  static bool getBool({String key = "", bool defaultVal = true}) {
+    return _prefs.getBool(key) ?? defaultVal;
+  }
+
+  static String getString({String key = "", String defaultVal = ""}) {
+    return _prefs.getString(key) ?? defaultVal;
+  }
+
+  static setString({String key = "", String val = ""}) async {
+    await _prefs.setString(key, val);
+  }
+
+  static setBool({String key = "", bool val = true}) async {
+    print("$key : $val");
+    await _prefs.setBool(key, val);
+  }
+}

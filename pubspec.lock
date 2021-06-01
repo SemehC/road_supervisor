@@ -364,6 +364,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "9.0.0"
+  geocoder:
+    dependency: "direct main"
+    description:
+      name: geocoder
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.2.1"
   geolocator:
     dependency: "direct main"
     description:
@@ -483,6 +490,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.17.0"
+  intro_views_flutter:
+    dependency: "direct main"
+    description:
+      name: intro_views_flutter
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.1.1"
   js:
     dependency: transitive
     description:

@@ -1,9 +1,13 @@
 import 'package:colours/colours.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoder/geocoder.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:lottie/lottie.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:road_supervisor/models/user_manager.dart';
 
 class MyAccoutWidget extends StatefulWidget {
   MyAccoutWidget({Key? key}) : super(key: key);
@@ -16,11 +20,21 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   List<Widget> databaseItemsWidgets = [];
-
+  String currentLocation = "";
   @override
   void initState() {
     super.initState();
+    fetchCurrentLocation();
     fetchAllDbItems();
+  }
+
+  fetchCurrentLocation() async {
+    var loc = await Geolocator.getCurrentPosition();
+    var locName = await Geocoder.local
+        .findAddressesFromCoordinates(Coordinates(loc.latitude, loc.longitude));
+    setState(() {
+      currentLocation = locName.first.addressLine;
+    });
   }
 
   buildPageHeader() {
@@ -42,14 +56,14 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  LocaleKeys.UserName.tr(),
+                  UserManager.currentUserProfile.fullName,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 25,
                   ),
                 ),
                 Text(
-                  LocaleKeys.Location.tr(),
+                  currentLocation,
                 )
               ],
             ),
@@ -62,10 +76,12 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                 ),
-                child: Image.network(
-                  'https://picsum.photos/seed/26/600',
-                  fit: BoxFit.cover,
-                ),
+                child: UserManager.currentUserProfile.photoUrl != ""
+                    ? Image.network(
+                        UserManager.currentUserProfile.photoUrl,
+                        fit: BoxFit.fitHeight,
+                      )
+                    : Text("No image"),
               ),
             )
           ],
@@ -114,7 +130,6 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
 
   fetchAllDbItems() async {
     List<DbPolyline> dbitems = await DatabaseManager.getAllPolylines();
-
     dbitems.forEach((element) {
       setState(() {
         databaseItemsWidgets.add(buildPolyLineItem(
@@ -123,6 +138,15 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
             isUploaed: element.uploadStatus));
       });
     });
+  }
+
+  buildEmptyPage() {
+    return LottieBuilder.asset(
+      "assets/lottie/empty_spider.json",
+      animate: true,
+      repeat: true,
+      width: MediaQuery.of(context).size.width,
+    );
   }
 
   @override
@@ -143,7 +167,9 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  ...databaseItemsWidgets,
+                  (databaseItemsWidgets.length != 0)
+                      ? {...databaseItemsWidgets}
+                      : buildEmptyPage(),
                 ],
               ),
             ),

@@ -6,7 +6,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:road_supervisor/models/database_manager.dart';
+import 'package:road_supervisor/models/shared_prefs_manager.dart';
 import 'package:road_supervisor/models/user_manager.dart';
+import 'package:road_supervisor/pages/intro_pages.dart';
 import 'package:road_supervisor/pages/login_signup.dart';
 import 'package:road_supervisor/pages/main_layout.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -17,13 +19,15 @@ final GoogleSignIn googleSignIn = GoogleSignIn();
 final storageRef = FirebaseStorage.instance.ref();
 FirebaseAuth auth = FirebaseAuth.instance;
 late List<CameraDescription> cameras;
-
+bool viewedIntro = false;
 User? currentUser = null;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseManager.initializeDatabase();
   await Firebase.initializeApp();
+  await SharedPrefsManager.initializeSharedPrefs();
+  checkIfViewedIntro();
   cameras = await availableCameras();
   await checkIfLoggedIn();
   await EasyLocalization.ensureInitialized();
@@ -46,6 +50,12 @@ checkIfLoggedIn() async {
   if (isLoggedIn) UserManager.currentUser = currentUser;
 }
 
+checkIfViewedIntro() {
+  print("Checking if viewed intor ");
+  viewedIntro = SharedPrefsManager.getBool(key: "viewIntro", defaultVal: false);
+  print(viewedIntro);
+}
+
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
@@ -59,7 +69,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: !isLoggedIn ? LoginSignup() : MainLayout(),
+      home: !viewedIntro
+          ? IntroPages()
+          : isLoggedIn
+              ? MainLayout()
+              : LoginSignup(),
     );
   }
 }
