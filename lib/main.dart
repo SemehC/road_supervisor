@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:road_supervisor/models/database_manager.dart';
+import 'package:road_supervisor/models/permissions_manager.dart';
 import 'package:road_supervisor/models/shared_prefs_manager.dart';
 import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/intro_pages.dart';
@@ -27,6 +28,7 @@ void main() async {
   await DatabaseManager.initializeDatabase();
   await Firebase.initializeApp();
   await SharedPrefsManager.initializeSharedPrefs();
+  await PermissionsManager.checkPermissions();
   checkIfViewedIntro();
   cameras = await availableCameras();
   await checkIfLoggedIn();
