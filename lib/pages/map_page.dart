@@ -120,7 +120,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   late Classifier _classifier;
   var MODEL_PATH = "assets/roadImageClassificationModel.tflite";
   var LABELS_PATH = "assets/labels.txt";
-  Category? category = Category("Bituminous", 1);
+  Category? category = Category("Asphalt", 1);
   @override
   void initState() {
     super.initState();
