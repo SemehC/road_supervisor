@@ -8,6 +8,7 @@ class UserManager {
   static User? currentUser;
 
   static fetchUserInfo() async {
+    currentUser = auth.currentUser;
     currentUserProfile =
         UserProfile.parseDoc(await usersRef.doc(currentUser!.uid).get());
     print("Got user info");

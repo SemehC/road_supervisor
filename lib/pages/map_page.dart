@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
 import 'package:colours/colours.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_animated_button/flutter_animated_button.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:group_button/group_button.dart';
@@ -14,6 +16,7 @@ import 'package:road_supervisor/models/ImageUtils.dart';
 import 'package:road_supervisor/models/classifier.dart';
 import 'package:road_supervisor/models/classifier_quant.dart';
 import 'package:road_supervisor/models/database_manager.dart';
+import 'package:road_supervisor/models/permissions_manager.dart';
 import 'package:road_supervisor/models/polyline_point.dart';
 import 'package:road_supervisor/models/sensors_predictor.dart';
 import 'package:sensors/sensors.dart';
@@ -38,7 +41,8 @@ class MapPage extends StatefulWidget {
   _MapPageState createState() => _MapPageState();
 }
 
-class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
+class _MapPageState extends State<MapPage>
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   //Location service
 
   //Location service enabled
@@ -51,6 +55,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   late GoogleMapController _googleMapController;
   //Map markers
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
+  Set<Circle> circle = {};
   //Fetched locations status
   bool gotData = false;
   //Minimum location distance change
@@ -113,7 +118,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   List<PolyLinePoint> currPolylinePoints = [];
 
   /* TENSORFLOW STUFF */
-  bool initializedPredictors = true;
+  bool predictUsingSensors = true;
+  bool predictUsingCamera = false;
 
   int currentSensorPrediction = -1;
   var oldTime = DateTime.now().millisecondsSinceEpoch;
@@ -121,14 +127,21 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   var MODEL_PATH = "assets/roadImageClassificationModel.tflite";
   var LABELS_PATH = "assets/labels.txt";
   Category? category = Category("Bituminous", 1);
+  late Timer timer;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance!.addObserver(this);
     SensorsPredictor.initializePredictor();
+
     fetchCamera();
     initializeLocation();
     initializeSensors();
     _classifier = ClassifierQuant();
+  }
+
+  checkLocationAgain() {
+    initializeLocation();
   }
 
   void _predict(img.Image imageInput) async {
@@ -146,10 +159,12 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       }
       setState(() {});
       _cameraController.startImageStream((CameraImage img) async {
-        var currentTime = new DateTime.now().millisecondsSinceEpoch;
-        if (currentTime - oldTimeCheckpoint >= 2000) {
-          _predict(ImageUtils.convertYUV420ToImage(img));
-          oldTimeCheckpoint = currentTime;
+        if (predictUsingCamera) {
+          var currentTime = new DateTime.now().millisecondsSinceEpoch;
+          if (currentTime - oldTimeCheckpoint >= 2000) {
+            _predict(ImageUtils.convertYUV420ToImage(img));
+            oldTimeCheckpoint = currentTime;
+          }
         }
       });
     });
@@ -158,21 +173,19 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   @override
   void dispose() {
     _cameraController.dispose();
+    WidgetsBinding.instance!.removeObserver(this);
     super.dispose();
   }
 
   initializeSensors() {
     userAccelerometerEvents.listen((UserAccelerometerEvent event) {
       setState(() {
-        if (initializedPredictors) {
-          // For ex: if input tensor shape [1,5] and type is float32
-          var input = [
-            [event.x, event.y, event.z]
-          ];
-          setState(() {
-            currentSensorPrediction = SensorsPredictor.predict(input);
-          });
-        }
+        // For ex: if input tensor shape [1,5] and type is float32
+        var input = [
+          [event.x, event.y, event.z]
+        ];
+
+        currentSensorPrediction = SensorsPredictor.predict(input);
 
         accelerometerEvent = event;
       });
@@ -238,6 +251,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   _addNewPolyline({int type = 0}) {
     int id = _polyline.length;
+    print("Adding polyline of type : $type");
     if (type == 0) {
       _polyline.add(Polyline(
         endCap: Cap.roundCap,
@@ -272,19 +286,21 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   initializeLocation() async {
     // ignore: deprecated_member_use
-    var rng = new Random();
-    LocationPermission permission = await Geolocator.checkPermission();
-    while (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
+    Uint8List imageData = await getMarker();
+    if (!PermissionsManager.isLocationEnabled) return;
     _initialPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     Geolocator.getPositionStream(
             desiredAccuracy: LocationAccuracy.high,
             distanceFilter: minLocationDistance)
         .listen((Position position) {
+      _googleMapController.animateCamera(CameraUpdate.newLatLng(
+          LatLng(position.latitude, position.longitude)));
+      if (!startedScanning)
+        prevPos = LatLng(position.latitude, position.longitude);
       if (startedScanning) {
+        print("current points length : ${currentPoints.length}");
+        print("Current sensors pred : $currentSensorPrediction");
         LatLng currPos = LatLng(
           position.latitude,
           position.longitude,
@@ -293,9 +309,12 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         if (currentSensorPrediction == 0) {
           if (currRoadType != 0) {
             currentPoints = [];
-            currPolylinePoints.add(PolyLinePoint(
-                lat: prevPos!.latitude, long: prevPos!.longitude, type: 0));
-            currentPoints.add(prevPos!);
+            if (prevPos != null) {
+              currPolylinePoints.add(PolyLinePoint(
+                  lat: prevPos!.latitude, long: prevPos!.longitude, type: 0));
+              currentPoints.add(prevPos!);
+            }
+
             _addNewPolyline(type: 0);
             currRoadType = 0;
           }
@@ -305,11 +324,16 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           currentPoints.add(currPos);
         }
         if (currentSensorPrediction == 1) {
+          print("Into condition 1");
+
           if (currRoadType != 1) {
             currentPoints = [];
-            currPolylinePoints.add(PolyLinePoint(
-                lat: prevPos!.latitude, long: prevPos!.longitude, type: 1));
-            currentPoints.add(prevPos!);
+            if (prevPos != null) {
+              currPolylinePoints.add(PolyLinePoint(
+                  lat: prevPos!.latitude, long: prevPos!.longitude, type: 1));
+              currentPoints.add(prevPos!);
+            }
+
             _addNewPolyline(type: 1);
             currRoadType = 1;
           }
@@ -319,26 +343,46 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           currentPoints.add(currPos);
         }
         if (currentSensorPrediction == 2) {
+          print("Into condition 2");
           if (currRoadType != 2) {
             currentPoints = [];
-            currPolylinePoints.add(PolyLinePoint(
-                lat: prevPos!.latitude, long: prevPos!.longitude, type: 2));
-            currentPoints.add(prevPos!);
+            if (prevPos != null) {
+              currPolylinePoints.add(PolyLinePoint(
+                  lat: prevPos!.latitude, long: prevPos!.longitude, type: 2));
+              currentPoints.add(prevPos!);
+            }
             _addNewPolyline(type: 2);
+
             currRoadType = 2;
+            print("Reset current points");
           }
           currPolylinePoints.add(PolyLinePoint(
               lat: currPos.latitude, long: currPos.longitude, type: 2));
-
           currentPoints.add(currPos);
+          print("Added point");
         }
         prevPos = currPos;
-        _googleMapController.animateCamera(CameraUpdate.newLatLng(currPos));
+
+        circle = {
+          Circle(
+              circleId: CircleId("car"),
+              radius: position.accuracy,
+              zIndex: 1,
+              strokeColor: Colors.blue,
+              center: currPos,
+              fillColor: Colors.blue.withAlpha(70)),
+        };
+
         final MarkerId markerId = MarkerId(LocaleKeys.CurrentPosition.tr());
 
         final Marker marker = Marker(
           markerId: markerId,
           position: currPos,
+          icon: BitmapDescriptor.fromBytes(imageData),
+          draggable: false,
+          zIndex: 2,
+          flat: true,
+          anchor: Offset(0.5, 0.5),
           infoWindow: InfoWindow(
               title: LocaleKeys.CurrentPosition.tr(),
               snippet: LocaleKeys.CurrentPosition.tr()),
@@ -375,12 +419,19 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     });
   }
 
+  Future<Uint8List> getMarker() async {
+    ByteData byteData =
+        await DefaultAssetBundle.of(context).load("assets/images/car_icon.png");
+    return byteData.buffer.asUint8List();
+  }
+
   buildMap() {
     return Container(
       child: GoogleMap(
         markers: Set<Marker>.of(markers.values),
         polylines: _polyline,
         mapType: mapTypes[currentMapType],
+        circles: circle,
         trafficEnabled: trafficEnabled,
         initialCameraPosition: CameraPosition(
           target: LatLng(_initialPosition.latitude, _initialPosition.longitude),
@@ -502,8 +553,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       panelOpenOffset:
           20.0, // Offset from the edge of screen when panel is open
       panelIcon: Icons.menu, // Panel open/close icon
-      size: 70.0, // Size of single button in the panel
-      iconSize: 24.0, // Size of icons
+      size: 40.0, // Size of single button in the panel
+      iconSize: 18.0, // Size of icons
       borderWidth: 1.0, // Width of panel border
       borderColor: Colors.black, // Color of panel border
 
@@ -527,19 +578,32 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
             Fluttertoast.showToast(msg: LocaleKeys.EnableCamera.tr());
           }
         }
+        if (index == 4) {
+          setState(() {
+            predictUsingSensors = !predictUsingSensors;
+          });
+        }
+        if (index == 5) {
+          setState(() {
+            predictUsingCamera = !predictUsingCamera;
+          });
+        }
       },
       buttons: [
         Icons.map_outlined,
         showCamera ? Icons.camera_enhance_outlined : Icons.camera,
         showSensors ? Icons.sensors_off : Icons.sensors,
         showCamera ? Icons.fullscreen : Icons.fullscreen_exit,
+        predictUsingSensors ? Icons.sensors_off : Icons.sensors,
+        predictUsingCamera
+            ? Icons.camera_indoor_sharp
+            : Icons.linked_camera_outlined,
       ],
     );
   }
 
   handleCameraPreviewClick() {
     if (isCameraPreviewZoomedIn) {
-      print("Zooming out");
       setState(() {
         cameraPreviewHeight = 200;
         cameraPreviewWidth = 100;
@@ -648,7 +712,16 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     _polyline.clear();
     watch.stop();
     watch.reset();
-    print("Stopped ! ");
+  }
+
+  String buildPredictionText() {
+    String retString = "";
+    if (predictUsingCamera) retString += category!.label.split(" ").last;
+    if (predictUsingSensors && currentSensorPrediction != -1)
+      retString += " " + SensorsPredictor.labels[currentSensorPrediction];
+    if (!predictUsingCamera && !predictUsingSensors)
+      retString = "Predictors not enabled";
+    return retString;
   }
 
   buildPredictionPanel() {
@@ -656,11 +729,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
       bottom: 60,
       left: MediaQuery.of(context).size.width / 4,
       child: Text(
-        currentSensorPrediction != -1
-            ? category!.label.split(" ").last +
-                "  " +
-                SensorsPredictor.labels[currentSensorPrediction]
-            : "None",
+        buildPredictionText(),
         style: TextStyle(fontSize: 20),
       ),
     );
@@ -757,13 +826,103 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     return Container(
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
-      child: lottie.Lottie.asset(
-        "assets/lottie/gps_sattelite_orbit.json",
-        animate: true,
-        repeat: true,
-        reverse: true,
-        alignment: Alignment.center,
+      child: Column(
+        children: [
+          lottie.Lottie.asset(
+            "assets/lottie/gps_sattelite_orbit.json",
+            animate: true,
+            repeat: true,
+            alignment: Alignment.center,
+          ),
+          TextButton.icon(
+            onPressed: initializeLocation,
+            icon: Icon(Icons.location_on_outlined),
+            label: Text("Try again"),
+          ),
+        ],
       ),
+    );
+  }
+
+  buildPermissionsScreen() {
+    return GridView.count(
+      primary: false,
+      padding: const EdgeInsets.all(1.5),
+      scrollDirection: Axis.vertical,
+      crossAxisCount: 2,
+      childAspectRatio: 0.80,
+      mainAxisSpacing: 1.0,
+      shrinkWrap: true,
+      crossAxisSpacing: 1,
+      children: [
+        !PermissionsManager.isLocationEnabled
+            ? Column(
+                children: [
+                  lottie.LottieBuilder.asset(
+                    "assets/lottie/location_marker.json",
+                    animate: true,
+                    repeat: true,
+                    width: MediaQuery.of(context).size.width / 4,
+                    height: MediaQuery.of(context).size.width / 4,
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Fluttertoast.showToast(msg: "Please enable location");
+                      PermissionsManager.enableLocation();
+                    },
+                    icon: Icon(Icons.location_on_outlined, size: 18),
+                    label: Text("Enable location"),
+                  )
+                ],
+              )
+            : Text(""),
+        !PermissionsManager.locationPermissionsAccepted
+            ? Column(
+                children: [
+                  lottie.LottieBuilder.asset(
+                    "assets/lottie/location_permissions.json",
+                    animate: true,
+                    repeat: true,
+                    reverse: true,
+                    width: MediaQuery.of(context).size.width / 4,
+                    height: MediaQuery.of(context).size.width / 4,
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Fluttertoast.showToast(
+                          msg: "Please accept location permissions");
+                      PermissionsManager.askForLocationPermissions();
+                    },
+                    icon: Icon(Icons.location_on_outlined, size: 18),
+                    label: Text("Location permissions"),
+                  )
+                ],
+              )
+            : Text(""),
+        !PermissionsManager.storagePermissionsAccepted
+            ? Column(
+                children: [
+                  lottie.LottieBuilder.asset(
+                    "assets/lottie/storage_permissions.json",
+                    animate: true,
+                    repeat: true,
+                    reverse: true,
+                    width: MediaQuery.of(context).size.width / 4,
+                    height: MediaQuery.of(context).size.width / 4,
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Fluttertoast.showToast(
+                          msg: "Please accept storage permissions");
+                      PermissionsManager.askForStoragePermissions();
+                    },
+                    icon: Icon(Icons.storage_rounded, size: 18),
+                    label: Text("Storage permissions"),
+                  )
+                ],
+              )
+            : Text(""),
+      ],
     );
   }
 
@@ -771,16 +930,32 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
-        children: [
-          if (!gotData) buildLoadingScreen(),
-          if (mapIsMainPage & gotData) ...buildMapMainPageUI(),
-          if (!mapIsMainPage & gotData) ...buildCamerMainPageUI(),
-          if (gotData) buildFloatingBox(),
-        ],
+        children: (PermissionsManager.isLocationEnabled &&
+                PermissionsManager.locationPermissionsAccepted &&
+                PermissionsManager.storagePermissionsAccepted)
+            ? [
+                if (!gotData) buildLoadingScreen(),
+                if (mapIsMainPage & gotData) ...buildMapMainPageUI(),
+                if (!mapIsMainPage & gotData) ...buildCamerMainPageUI(),
+                if (gotData) buildFloatingBox(),
+              ]
+            : [
+                buildPermissionsScreen(),
+              ],
       ),
     );
   }
 
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print("State changed");
+    if (state == AppLifecycleState.resumed) {
+      print("back to app");
+      PermissionsManager.checkPermissions();
+      setState(() {});
+    }
+  }
 }

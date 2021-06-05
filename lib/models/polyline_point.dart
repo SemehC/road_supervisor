@@ -45,10 +45,8 @@ class PolyLinePoint {
       await path.create();
     }
 
-    Map<String, dynamic> el = new Map();
-
     final File file = File('${path.path}/road_scan${id + 1}.json');
-    DbPolyline pt = DbPolyline(fileLocation: file.path);
+    DbPolyline pt = DbPolyline(id: id + 1, fileLocation: file.path);
     DatabaseManager.insertToDatabase(pt);
     int count = 0;
     String finalString = "{";
@@ -56,8 +54,10 @@ class PolyLinePoint {
       finalString +=
           "$count : { 'lat' : '${element.lat}','long' : '${element.long}','type' : '${element.type}' } ";
       count++;
+      print("Added !");
     });
     finalString += "}";
     file.writeAsString(finalString);
+    print("Done saving file ");
   }
 }

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:geocoder/geocoder.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lottie/lottie.dart';
+import 'package:ndialog/ndialog.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:road_supervisor/models/user_manager.dart';
+import 'package:road_supervisor/pages/scan_item_page.dart';
 
 class MyAccoutWidget extends StatefulWidget {
   MyAccoutWidget({Key? key}) : super(key: key);
@@ -21,11 +23,14 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
 
   List<Widget> databaseItemsWidgets = [];
   String currentLocation = "";
+  bool isDbEmtpy = true;
   @override
   void initState() {
     super.initState();
-    fetchCurrentLocation();
-    fetchAllDbItems();
+    WidgetsBinding.instance!.addPostFrameCallback((_) {
+      fetchCurrentLocation();
+      fetchAllDbItems();
+    });
   }
 
   fetchCurrentLocation() async {
@@ -81,7 +86,10 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
                         UserManager.currentUserProfile.photoUrl,
                         fit: BoxFit.fitHeight,
                       )
-                    : Text("No image"),
+                    : Image.asset(
+                        "assets/images/profile_default.png",
+                        fit: BoxFit.cover,
+                      ),
               ),
             )
           ],
@@ -90,54 +98,85 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
     );
   }
 
-  buildPolyLineItem(
-      {int id = 0, String fileName = "", bool isUploaed = false}) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
-      child: Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Image.network(
-            'https://picsum.photos/seed/83/600',
-            width: 200,
-            height: 100,
-            fit: BoxFit.cover,
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Text(
-                'Scan N°$id',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 17,
+  deleteDbItem(DbPolyline pt) async {
+    await NDialog(
+      title: Text("Delete"),
+      content: Text("this would delete this scan locally"),
+      actions: [
+        TextButton.icon(
+          onPressed: () => {
+            DatabaseManager.removeFromDb(pt),
+            fetchAllDbItems(),
+            Navigator.pop(context),
+          },
+          icon: Icon(Icons.delete_forever),
+          label: Text("delete"),
+        ),
+      ],
+    ).show(context, transitionType: DialogTransitionType.Bubble);
+  }
+
+  buildPolyLineItem({required DbPolyline polyItem}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => ScanItemPage(dbItem: polyItem)));
+      },
+      onLongPress: () {
+        deleteDbItem(polyItem);
+      },
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Image.network(
+              'https://picsum.photos/seed/83/600',
+              width: 200,
+              height: 100,
+              fit: BoxFit.cover,
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Text(
+                  'Scan N°${polyItem.id}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
                 ),
-              ),
-              isUploaed
-                  ? Icon(Icons.upload, color: Colours.green)
-                  : Icon(
-                      Icons.upload,
-                      color: Colours.red,
-                    ),
-            ],
-          )
-        ],
+                polyItem.uploadStatus
+                    ? Icon(Icons.upload, color: Colours.green)
+                    : Icon(
+                        Icons.upload,
+                        color: Colours.red,
+                      ),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
 
   fetchAllDbItems() async {
     List<DbPolyline> dbitems = await DatabaseManager.getAllPolylines();
+    databaseItemsWidgets = [];
     dbitems.forEach((element) {
+      print("Got an item ");
       setState(() {
-        databaseItemsWidgets.add(buildPolyLineItem(
-            id: element.id,
-            fileName: element.fileLocation,
-            isUploaed: element.uploadStatus));
+        databaseItemsWidgets.add(buildPolyLineItem(polyItem: element));
       });
     });
+    if (dbitems.length > 0)
+      setState(() {
+        isDbEmtpy = false;
+      });
   }
 
   buildEmptyPage() {
@@ -167,9 +206,8 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  (databaseItemsWidgets.length != 0)
-                      ? {...databaseItemsWidgets}
-                      : buildEmptyPage(),
+                  isDbEmtpy ? buildEmptyPage() : Text(""),
+                  ...databaseItemsWidgets,
                 ],
               ),
             ),

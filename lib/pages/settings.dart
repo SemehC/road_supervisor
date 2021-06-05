@@ -116,11 +116,13 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   }
 
   getUserDataField() async {
+    print("Getting user info");
     if (UserManager.currentUserProfile == null)
       await UserManager.fetchUserInfo();
-    fullName = UserManager.currentUserProfile!.fullName;
-    email = UserManager.currentUser!.email.toString();
-    photoUrl = UserManager.currentUserProfile!.photoUrl;
+    print(UserManager.currentUserProfile.fullName);
+    fullName = UserManager.currentUserProfile.fullName;
+    email = "123";
+    photoUrl = UserManager.currentUserProfile.photoUrl;
     gotUserData = true;
   }
 
