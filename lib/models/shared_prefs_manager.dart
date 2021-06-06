@@ -11,6 +11,14 @@ class SharedPrefsManager {
     return _prefs.getBool(key) ?? defaultVal;
   }
 
+  static setInt({String key = "", int val = 0}) {
+    return _prefs.setInt(key, val);
+  }
+
+  static int getInt({String key = "", int defaultVal = 0}) {
+    return _prefs.getInt(key) ?? defaultVal;
+  }
+
   static String getString({String key = "", String defaultVal = ""}) {
     return _prefs.getString(key) ?? defaultVal;
   }

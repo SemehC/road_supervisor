@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
@@ -23,9 +24,10 @@ class PolyLinePoint {
   });
 
   static Future<void> savePolylinePointsToLocal(List<PolyLinePoint> pts) async {
-    var status = await Permission.manageExternalStorage.status;
+    var status = await Permission.storage.status;
 
     if (status.isDenied) {
+      await Permission.storage.request();
       if (await Permission.manageExternalStorage.request().isDenied) {
         Fluttertoast.showToast(msg: "Permission not accepted");
         return;
@@ -40,7 +42,8 @@ class PolyLinePoint {
     int id = (await DatabaseManager.getAllPolylines()).length;
 
     final folderName = "road_supervisor";
-    final path = Directory("storage/emulated/0/$folderName");
+    final dirPath = await getExternalStorageDirectory();
+    final path = Directory("${dirPath!.path}/$folderName");
     if (!(await path.exists())) {
       await path.create();
     }

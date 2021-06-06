@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/permissions_manager.dart';
 import 'package:road_supervisor/models/shared_prefs_manager.dart';
@@ -22,7 +25,9 @@ FirebaseAuth auth = FirebaseAuth.instance;
 late List<CameraDescription> cameras;
 bool viewedIntro = false;
 User? currentUser = null;
-
+String fName = "FullName";
+String phUrl = "photoUrl";
+File? shownProfilePicture;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseManager.initializeDatabase();

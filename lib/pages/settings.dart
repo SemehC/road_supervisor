@@ -8,6 +8,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ndialog/ndialog.dart';
 import 'package:menu_button/menu_button.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/main.dart';
 import 'package:road_supervisor/models/shared_prefs_manager.dart';
@@ -28,6 +29,8 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
   static const RECEIVE_NOTIFICATIONS = "getNotifications";
   static const LANGUAGE = "language";
   static const SPEED_UNIT = "speedUnit";
+  static const HAS_LOCAL_IMAGE = "hasLocalImage";
+  static const IMAGE_INDEX = "imageIndex";
   final scaffoldKey = GlobalKey<ScaffoldState>();
   bool speedUnit = false;
   bool receiveNotifications = false;
@@ -42,8 +45,9 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     'Français',
   ];
   bool gotUserData = false;
-
+  bool hasLocalImage = false;
   final picker = ImagePicker();
+  int imageIndex = 0;
   @override
   void initState() {
     super.initState();
@@ -60,6 +64,13 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           key: _MySettingsWidgetState.RECEIVE_NOTIFICATIONS, defaultVal: false);
       selectedLanguage = SharedPrefsManager.getString(
           key: _MySettingsWidgetState.LANGUAGE, defaultVal: languages[0]);
+      hasLocalImage = SharedPrefsManager.getBool(
+          key: _MySettingsWidgetState.HAS_LOCAL_IMAGE, defaultVal: false);
+      imageIndex = SharedPrefsManager.getInt(
+          key: _MySettingsWidgetState.IMAGE_INDEX, defaultVal: 0);
+      if (hasLocalImage) {
+        getLocalImage();
+      }
       switch (selectedLanguage) {
         case "English":
           {
@@ -77,6 +88,15 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           }
           break;
       }
+    });
+  }
+
+  getLocalImage() async {
+    final appDir = await getExternalStorageDirectory();
+    final picPath = Directory(appDir!.path + "/Pictures");
+    var pic = File(picPath.listSync().first.path);
+    setState(() {
+      shownProfilePicture = pic;
     });
   }
 
@@ -121,7 +141,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
       await UserManager.fetchUserInfo();
     print(UserManager.currentUserProfile.fullName);
     fullName = UserManager.currentUserProfile.fullName;
-    email = "123";
+    email = UserManager.currentUser!.email!;
     photoUrl = UserManager.currentUserProfile.photoUrl;
     gotUserData = true;
   }
@@ -140,23 +160,39 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     );
   }
 
+  copyImageToAppDirectory(File pic) async {
+    final appDir = await getExternalStorageDirectory();
+    final picPath = Directory(appDir!.path + "/Pictures");
+    File(picPath.path + "/profilePicture$imageIndex.jpg").delete();
+    var newPic =
+        await pic.copy(picPath.path + "/profilePicture${++imageIndex}.jpg");
+    setState(() {
+      imageCache!.clear();
+      imageCache!.clearLiveImages();
+      shownProfilePicture = newPic;
+    });
+  }
+
   handleChangePicture() async {
-    final pickedFile = await picker.getImage(source: ImageSource.gallery);
+    final pickedFile =
+        await picker.getImage(source: ImageSource.gallery, imageQuality: 50);
     if (pickedFile != null) {
+      SharedPrefsManager.setBool(
+          key: _MySettingsWidgetState.HAS_LOCAL_IMAGE, val: true);
+      copyImageToAppDirectory(File(pickedFile.path));
       var ref = storageRef
           .child("${UserManager.currentUser!.uid}_profile.jpg")
           .putFile(File(pickedFile.path))
           .snapshot;
       String downUrl = await ref.ref.getDownloadURL();
-      print(downUrl);
       UserManager.updateUserInfo(
-        "photoUrl",
+        phUrl,
         downUrl,
       );
       setState(() {
         photoUrl = downUrl;
-        Navigator.pop(context);
       });
+      Navigator.pop(context);
     } else {
       Fluttertoast.showToast(msg: LocaleKeys.Canceled.tr());
     }
@@ -170,9 +206,18 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
         width: 300,
         height: 300,
         child: Image(
-          image: NetworkImage(
-            photoUrl != "" ? photoUrl! : 'https://picsum.photos/seed/867/600',
-          ),
+          image: getImageProvider(),
+          loadingBuilder: (context, child, progress) {
+            return progress == null
+                ? child
+                : lottie.Lottie.asset(
+                    "assets/lottie/loading.json",
+                    animate: true,
+                    repeat: true,
+                    reverse: true,
+                    alignment: Alignment.center,
+                  );
+          },
         ),
       ),
       actions: [
@@ -190,6 +235,15 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
     ).show(context, transitionType: DialogTransitionType.Bubble);
   }
 
+  getImageProvider() {
+    if (shownProfilePicture != null) {
+      return FileImage(shownProfilePicture!);
+    } else {
+      return NetworkImage(
+          photoUrl != "" ? photoUrl! : 'https://picsum.photos/seed/867/600');
+    }
+  }
+
   buildUsernameAndPhoto() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -204,15 +258,10 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         leading: GestureDetector(
-          onTap: () {
-            buildImageZoom();
-          },
-          child: CircleAvatar(
-            backgroundImage: NetworkImage(
-              photoUrl != "" ? photoUrl! : 'https://picsum.photos/seed/867/600',
-            ),
-          ),
-        ),
+            onTap: () {
+              buildImageZoom();
+            },
+            child: CircleAvatar(backgroundImage: getImageProvider())),
         trailing: Icon(
           Icons.edit,
           color: Colors.white,
@@ -657,7 +706,7 @@ class _MySettingsWidgetState extends State<MySettingsWidget> {
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Theme.of(context).primaryColor);
-      updateUser("FullName", fullName);
+      updateUser(fName, fullName);
       Navigator.pop(context);
     }
   }

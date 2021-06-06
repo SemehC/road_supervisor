@@ -15,6 +15,27 @@ class UserManager {
   }
 
   static updateUserInfo(field, value) async {
+    switch (field) {
+      case "FullName":
+        {
+          currentUserProfile.fullName = value;
+        }
+        break;
+      case "CarType":
+        {
+          currentUserProfile.carType = value;
+        }
+        break;
+      case "joinDate":
+        {
+          currentUserProfile.joinDate = value;
+        }
+        break;
+      case "photoUrl":
+        {
+          currentUserProfile.photoUrl = value;
+        }
+    }
     return usersRef
         .doc(currentUser!.uid)
         .update({field: value})

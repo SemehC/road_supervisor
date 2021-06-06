@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserProfile {
-  final String fullName;
-  final String carType;
-  final Timestamp? joinDate;
-  final String photoUrl;
+  String fullName;
+  String carType;
+  Timestamp? joinDate;
+  String photoUrl;
   UserProfile({
     required this.photoUrl,
     required this.fullName,

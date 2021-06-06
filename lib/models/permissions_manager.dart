@@ -36,7 +36,7 @@ class PermissionsManager {
   }
 
   static askForStoragePermissions() {
-    //Permission.manageExternalStorage.request();
+    Permission.manageExternalStorage.request();
     Permission.storage.request();
   }
 
