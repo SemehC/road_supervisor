@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:colours/colours.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoder/geocoder.dart';
@@ -7,9 +9,11 @@ import 'package:ndialog/ndialog.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
-import 'package:easy_localization/easy_localization.dart';
+import 'package:road_supervisor/models/polyline_point.dart';
 import 'package:road_supervisor/models/user_manager.dart';
 import 'package:road_supervisor/pages/scan_item_page.dart';
+
+import '../main.dart';
 
 class MyAccoutWidget extends StatefulWidget {
   MyAccoutWidget({Key? key}) : super(key: key);
@@ -22,7 +26,7 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
   final scaffoldKey = GlobalKey<ScaffoldState>();
 
   List<Widget> databaseItemsWidgets = [];
-  String currentLocation = "";
+
   bool isDbEmtpy = true;
   @override
   void initState() {
@@ -34,9 +38,7 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
   }
 
   fetchCurrentLocation() async {
-    var loc = await Geolocator.getCurrentPosition();
-    var locName = await Geocoder.local
-        .findAddressesFromCoordinates(Coordinates(loc.latitude, loc.longitude));
+    var locName = await UserManager.fetchCurrentLocation();
     setState(() {
       currentLocation = locName.first.addressLine;
     });
@@ -96,11 +98,30 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
     );
   }
 
-  deleteDbItem(DbPolyline pt) async {
+  handleUpload(DbPolyline pt) async {
+    print("Uploading");
+    String fileName = pt.fileLocation.split("/").last;
+    await PolyLinePoint.uploadFileToCloudStorage(fileName, pt.fileLocation)
+        .then((uploaded) {
+      print("Deleting from database");
+      DatabaseManager.removeFromDb(pt);
+      fetchAllDbItems();
+    });
+  }
+
+  dbItemOptions(DbPolyline pt) async {
     await NDialog(
-      title: Text("Delete"),
+      title: Text(LocaleKeys.Settings),
       content: Text("this would delete this scan locally"),
       actions: [
+        TextButton.icon(
+          onPressed: () => {
+            handleUpload(pt),
+            Navigator.pop(context),
+          },
+          icon: Icon(Icons.upload_file),
+          label: Text("Upload"),
+        ),
         TextButton.icon(
           onPressed: () => {
             DatabaseManager.removeFromDb(pt),
@@ -108,13 +129,14 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
             Navigator.pop(context),
           },
           icon: Icon(Icons.delete_forever),
-          label: Text("delete"),
+          label: Text("Delete"),
         ),
       ],
     ).show(context, transitionType: DialogTransitionType.Bubble);
   }
 
   buildPolyLineItem({required DbPolyline polyItem}) {
+    print("Item image location : " + polyItem.imageLocation);
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -123,7 +145,7 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
                 builder: (context) => ScanItemPage(dbItem: polyItem)));
       },
       onLongPress: () {
-        deleteDbItem(polyItem);
+        dbItemOptions(polyItem);
       },
       child: Padding(
         padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
@@ -132,11 +154,13 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Image.network(
-              'https://picsum.photos/seed/83/600',
-              width: 200,
-              height: 100,
-              fit: BoxFit.cover,
+            Container(
+              width: 250,
+              height: 150,
+              child: Image(
+                image: FileImage(File(polyItem.imageLocation)),
+                fit: BoxFit.cover,
+              ),
             ),
             Column(
               mainAxisSize: MainAxisSize.max,
@@ -166,15 +190,19 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
     List<DbPolyline> dbitems = await DatabaseManager.getAllPolylines();
     databaseItemsWidgets = [];
     dbitems.forEach((element) {
-      print("Got an item ");
       setState(() {
         databaseItemsWidgets.add(buildPolyLineItem(polyItem: element));
       });
     });
-    if (dbitems.length > 0)
+    if (dbitems.length > 0) {
       setState(() {
         isDbEmtpy = false;
       });
+    } else {
+      setState(() {
+        isDbEmtpy = true;
+      });
+    }
   }
 
   buildEmptyPage() {

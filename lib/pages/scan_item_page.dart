@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
+import 'package:road_supervisor/models/polyline_point.dart';
 
 class ScanItemPage extends StatefulWidget {
   final DbPolyline dbItem;
@@ -10,23 +12,15 @@ class ScanItemPage extends StatefulWidget {
 }
 
 class _ScanItemPageState extends State<ScanItemPage> {
+  bool uploadStatus = false;
   buildPageAppBar() {
     return AppBar(
       title: Text("Scan : ${widget.dbItem.id}"),
-    );
-  }
-
-  fetchJsonFile() {}
-
-  handleUpload() {
-    print("Uploading");
-  }
-
-  buildUploadBt() {
-    return TextButton.icon(
-      onPressed: handleUpload,
-      icon: Icon(Icons.upload_file),
-      label: Text("Upload scan to cloud"),
+      leading: new IconButton(
+          icon: new Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          }),
     );
   }
 
@@ -35,7 +29,6 @@ class _ScanItemPageState extends State<ScanItemPage> {
       children: [
         Text(widget.dbItem.fileLocation),
         Divider(),
-        buildUploadBt(),
       ],
     );
   }

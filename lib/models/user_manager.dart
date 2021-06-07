@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoder/geocoder.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:road_supervisor/main.dart';
 import 'package:road_supervisor/models/shared_prefs_manager.dart';
@@ -122,5 +124,11 @@ class UserManager {
       return roundedProfileImage;
     }
     return profileImage;
+  }
+
+  static Future<List<Address>> fetchCurrentLocation() async {
+    var loc = await Geolocator.getCurrentPosition();
+    return await Geocoder.local
+        .findAddressesFromCoordinates(Coordinates(loc.latitude, loc.longitude));
   }
 }

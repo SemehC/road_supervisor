@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -707,6 +708,9 @@ class _MapPageState extends State<MapPage>
   stopScanning() async {
     print(currPolylinePoints.length);
     await PolyLinePoint.savePolylinePointsToLocal(currPolylinePoints);
+    _googleMapController.takeSnapshot().then((u8IntListImage) async {
+      await PolyLinePoint.savePolylineSnaphotToLocal(u8IntListImage);
+    });
 
     currPolylinePoints.clear();
     markers.clear();
