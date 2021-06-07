@@ -19,6 +19,7 @@ import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/permissions_manager.dart';
 import 'package:road_supervisor/models/polyline_point.dart';
 import 'package:road_supervisor/models/sensors_predictor.dart';
+import 'package:road_supervisor/models/user_manager.dart';
 import 'package:sensors/sensors.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -137,6 +138,7 @@ class _MapPageState extends State<MapPage>
     initializeLocation();
     initializeSensors();
     _classifier = ClassifierQuant();
+    UserManager.getLocalSettings(this);
   }
 
   checkLocationAgain() {

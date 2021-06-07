@@ -45,7 +45,7 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
   buildPageHeader() {
     return Container(
       width: double.infinity,
-      height: 140,
+      height: 120,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(1),
@@ -56,40 +56,38 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  UserManager.currentUserProfile.fullName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 25,
+            Expanded(
+                child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                height: 70,
+                alignment: Alignment.topCenter,
+                child:
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Text(
+                    UserManager.currentUserProfile.fullName,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 25,
+                    ),
                   ),
-                ),
-                Text(
-                  currentLocation,
-                )
-              ],
-            ),
+                  Text(
+                    currentLocation,
+                  )
+                ]),
+              ),
+            )),
             Align(
               alignment: Alignment(0, 1),
               child: Container(
+                margin: const EdgeInsets.only(left: 30),
                 width: 80,
                 height: 80,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                 ),
-                child: UserManager.currentUserProfile.photoUrl != ""
-                    ? Image.network(
-                        UserManager.currentUserProfile.photoUrl,
-                        fit: BoxFit.fitHeight,
-                      )
-                    : Image.asset(
-                        "assets/images/profile_default.png",
-                        fit: BoxFit.cover,
-                      ),
+                child: UserManager.getProfileImage(true),
               ),
             )
           ],

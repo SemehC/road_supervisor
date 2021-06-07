@@ -18,16 +18,33 @@ import 'package:road_supervisor/pages/main_layout.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:road_supervisor/generated/codegen_loader.g.dart';
 
-var usersRef = FirebaseFirestore.instance.collection("users");
+const FULL_NAME = "FullName";
+const PHOTO_URL = "photoUrl";
+const RECEIVE_NOTIFICATIONS = "getNotifications";
+const LANGUAGE = "language";
+const SPEED_UNIT = "speedUnit";
+const HAS_LOCAL_IMAGE = "hasLocalImage";
+const IMAGE_INDEX = "imageIndex";
 final GoogleSignIn googleSignIn = GoogleSignIn();
 final storageRef = FirebaseStorage.instance.ref();
-FirebaseAuth auth = FirebaseAuth.instance;
+var usersRef = FirebaseFirestore.instance.collection("users");
 late List<CameraDescription> cameras;
-bool viewedIntro = false;
+FirebaseAuth auth = FirebaseAuth.instance;
 User? currentUser = null;
-String fName = "FullName";
-String phUrl = "photoUrl";
 File? shownProfilePicture;
+bool? speedUnit;
+bool? receiveNotifications;
+bool? hasLocalImage;
+bool viewedIntro = false;
+bool gotUserData = false;
+int imageIndex = 0;
+String? email;
+String? password;
+String? confirmPassword;
+String? selectedLanguage;
+String? fullName;
+String? photoUrl;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseManager.initializeDatabase();
@@ -58,13 +75,14 @@ checkIfLoggedIn() async {
 }
 
 checkIfViewedIntro() {
-  print("Checking if viewed intor ");
+  print("Checking if viewed intro ");
   viewedIntro = SharedPrefsManager.getBool(key: "viewIntro", defaultVal: false);
   print(viewedIntro);
 }
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

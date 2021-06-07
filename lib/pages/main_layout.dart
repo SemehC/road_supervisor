@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:bottom_navy_bar/bottom_navy_bar.dart';
 import 'package:road_supervisor/models/user_manager.dart';
@@ -22,12 +23,8 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    loadUserInfo();
+    UserManager.getLocalSettings(this);
     _pageController = PageController();
-  }
-
-  loadUserInfo() async {
-    await UserManager.fetchUserInfo();
   }
 
   @override

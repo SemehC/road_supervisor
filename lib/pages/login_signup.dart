@@ -18,6 +18,7 @@ class _LoginSignupState extends State<LoginSignup> {
       var x = await auth.signInWithEmailAndPassword(
           email: data.name, password: data.password);
       currentUser = x.user;
+      UserManager.getLocalSettings(this);
     } on FirebaseAuthException catch (e) {
       return (e.message);
     }
