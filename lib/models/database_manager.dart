@@ -36,7 +36,7 @@ class DatabaseManager {
     File(pt.imageLocation)
         .delete()
         .then((value) => print("Deleted local image"));
-    File(pt.fileLocation).delete().then((value) => print("Deleted local sacn"));
+    File(pt.fileLocation).delete().then((value) => print("Deleted local scan"));
   }
 
   static Future<List<DbPolyline>> getAllPolylines() async {
