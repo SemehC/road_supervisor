@@ -286,6 +286,39 @@ class _MapPageState extends State<MapPage>
     }
   }
 
+  updateCurrentPositionMarker(Position position, Uint8List imageData) {
+    LatLng currPos = LatLng(position.latitude, position.longitude);
+    circle = {
+      Circle(
+          circleId: CircleId("car"),
+          radius: position.accuracy,
+          zIndex: 1,
+          strokeColor: Colors.blue,
+          center: currPos,
+          fillColor: Colors.blue.withAlpha(70)),
+    };
+
+    final MarkerId markerId = MarkerId(LocaleKeys.CurrentPosition.tr());
+
+    final Marker marker = Marker(
+      markerId: markerId,
+      position: currPos,
+      rotation: position.heading,
+      icon: BitmapDescriptor.fromBytes(imageData),
+      draggable: false,
+      zIndex: 2,
+      flat: true,
+      anchor: Offset(0.5, 0.5),
+      infoWindow: InfoWindow(
+          title: LocaleKeys.CurrentPosition.tr(),
+          snippet: LocaleKeys.CurrentPosition.tr()),
+    );
+
+    setState(() {
+      markers[markerId] = marker;
+    });
+  }
+
   initializeLocation() async {
     // ignore: deprecated_member_use
     Uint8List imageData = await getMarker();
@@ -296,8 +329,10 @@ class _MapPageState extends State<MapPage>
             desiredAccuracy: LocationAccuracy.high,
             distanceFilter: minLocationDistance)
         .listen((Position position) {
+      updateCurrentPositionMarker(position, imageData);
       _googleMapController.animateCamera(CameraUpdate.newLatLng(
           LatLng(position.latitude, position.longitude)));
+
       if (!startedScanning)
         prevPos = LatLng(position.latitude, position.longitude);
       if (startedScanning) {
@@ -364,35 +399,6 @@ class _MapPageState extends State<MapPage>
           print("Added point");
         }
         prevPos = currPos;
-
-        circle = {
-          Circle(
-              circleId: CircleId("car"),
-              radius: position.accuracy,
-              zIndex: 1,
-              strokeColor: Colors.blue,
-              center: currPos,
-              fillColor: Colors.blue.withAlpha(70)),
-        };
-
-        final MarkerId markerId = MarkerId(LocaleKeys.CurrentPosition.tr());
-
-        final Marker marker = Marker(
-          markerId: markerId,
-          position: currPos,
-          icon: BitmapDescriptor.fromBytes(imageData),
-          draggable: false,
-          zIndex: 2,
-          flat: true,
-          anchor: Offset(0.5, 0.5),
-          infoWindow: InfoWindow(
-              title: LocaleKeys.CurrentPosition.tr(),
-              snippet: LocaleKeys.CurrentPosition.tr()),
-        );
-
-        setState(() {
-          markers[markerId] = marker;
-        });
       }
     });
 

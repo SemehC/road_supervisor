@@ -22,8 +22,10 @@ class _IntroPagesState extends State<IntroPages> {
         repeat: true,
         reverse: true,
       ),
-      body: const Text(
-        'An app dedicated to road status supervision',
+      body: SingleChildScrollView(
+        child: const Text(
+          'An app dedicated to road status supervision',
+        ),
       ),
       title: const Text(
         'Road Supervisor',
@@ -39,8 +41,10 @@ class _IntroPagesState extends State<IntroPages> {
         repeat: true,
         reverse: true,
       ),
-      body: const Text(
-        'View local road status directly on your map',
+      body: SingleChildScrollView(
+        child: const Text(
+          'View local road status directly on your map',
+        ),
       ),
       title: const Text(
         'Map',
@@ -56,8 +60,10 @@ class _IntroPagesState extends State<IntroPages> {
         repeat: true,
         reverse: true,
       ),
-      body: const Text(
-        'All provided data is encrypted and safely stored',
+      body: SingleChildScrollView(
+        child: const Text(
+          'All provided data is encrypted and safely stored',
+        ),
       ),
       title: const Text(
         'Security',
@@ -73,8 +79,10 @@ class _IntroPagesState extends State<IntroPages> {
         repeat: true,
         reverse: true,
       ),
-      body: const Text(
-        'Thanks to a centralized database, view road status submitted by all our users',
+      body: SingleChildScrollView(
+        child: const Text(
+          'Thanks to a centralized database, view road status submitted by all our users',
+        ),
       ),
       title: const Text(
         'Centralized',

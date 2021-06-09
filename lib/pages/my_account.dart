@@ -40,7 +40,7 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
   fetchCurrentLocation() async {
     var locName = await UserManager.fetchCurrentLocation();
     setState(() {
-      currentLocation = locName.first.addressLine;
+      currentLocation = locName.first.locality;
     });
   }
 
@@ -103,8 +103,9 @@ class _MyAccoutWidgetState extends State<MyAccoutWidget> {
     String fileName = pt.fileLocation.split("/").last;
     await PolyLinePoint.uploadFileToCloudStorage(fileName, pt.fileLocation)
         .then((uploaded) {
-      print("Deleting from database");
-      DatabaseManager.removeFromDb(pt);
+      // print("Deleting from database");
+      DatabaseManager.updateToUploaded(pt);
+      // DatabaseManager.removeFromDb(pt);
       fetchAllDbItems();
     });
   }

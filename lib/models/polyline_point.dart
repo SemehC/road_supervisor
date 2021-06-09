@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:road_supervisor/models/database_manager.dart';
 import 'package:road_supervisor/models/db_polyline_item.dart';
-
+import 'package:uuid/uuid.dart';
 import '../main.dart';
 import 'user_manager.dart';
 
@@ -57,9 +57,8 @@ class PolyLinePoint {
     String finalString = "{";
     pts.forEach((element) {
       finalString +=
-          "$count : { 'lat' : '${element.lat}','long' : '${element.long}','type' : '${element.type}' } ";
+          '"$count":{ "lat" : "${element.lat}","long" : "${element.long}","type" : "${element.type}" },';
       count++;
-      print("Added !");
     });
     finalString += "}";
     file.writeAsString(finalString);
@@ -67,8 +66,10 @@ class PolyLinePoint {
   }
 
   static uploadFileToCloudStorage(String fileName, String fileLocation) async {
+    String randId = Uuid().v1();
     storageRef
-        .child(fileName)
+        .child("scans")
+        .child("${randId}_$fileName")
         .putFile(File(fileLocation))
         .then((taskSnapShot) async {
       String downUrl = await taskSnapShot.ref.getDownloadURL();
@@ -85,6 +86,8 @@ class PolyLinePoint {
     });
   }
 
+
+
   static savePolylineSnaphotToLocal(Uint8List? u8intListImage) async {
     final path = await getStorageDir();
     int id = (await DatabaseManager.getAllPolylines()).length;
@@ -92,6 +95,7 @@ class PolyLinePoint {
     file.writeAsBytes(u8intListImage!);
     print("Done saving file ");
   }
+
 
   static Future<Directory> getStorageDir() async {
     final folderName = "road_supervisor";

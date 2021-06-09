@@ -60,6 +60,10 @@ dependencies:
   geocoder: ^0.2.1
   intro_views_flutter: ^3.1.1
   tflite_flutter_helper: ^0.2.0
+  uuid: ^3.0.4
+  gson: ^0.1.4
+  extended_navbar_scaffold: ^1.0.2+1
+  custom_info_window: ^1.0.1
 
 
   # The following adds the Cupertino Icons font to your application.

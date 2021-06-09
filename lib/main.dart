@@ -96,7 +96,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: !viewedIntro
+      home: !SharedPrefsManager.getBool(key: "viewIntro", defaultVal: false)
           ? IntroPages()
           : isLoggedIn
               ? MainLayout()

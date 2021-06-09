@@ -31,6 +31,12 @@ class DatabaseManager {
     print("Added to db");
   }
 
+  static updateToUploaded(DbPolyline pt) async {
+    await database.update("polylines", {"uploadStatus": true},
+        where: "id = ?", whereArgs: [pt.id]);
+    print("updated");
+  }
+
   static removeFromDb(DbPolyline pt) async {
     await database.delete("polylines", where: "id = ?", whereArgs: [pt.id]);
     File(pt.imageLocation)
