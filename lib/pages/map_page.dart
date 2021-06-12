@@ -484,7 +484,7 @@ class _MapPageState extends State<MapPage>
       dialogStyle: DialogStyle(titleDivider: true),
       title: Text(LocaleKeys.MapSettings.tr()),
       content: Container(
-        height: 200,
+        height: 300,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -514,6 +514,12 @@ class _MapPageState extends State<MapPage>
               ],
             ),
             SizedBox(height: 20),
+            TextButton.icon(
+              onPressed: fetchCloudData,
+              icon: Icon(Icons.cloud_download_outlined),
+              label: Text("Fetch cloud data"),
+            ),
+            SizedBox(height: 20),
             Row(
               children: [
                 Text(LocaleKeys.Traffic.tr()),
@@ -541,6 +547,21 @@ class _MapPageState extends State<MapPage>
     ).show(context, transitionType: DialogTransitionType.Bubble);
   }
 
+  drawCloudData() async {
+    var pols = await PolyLinePoint.loadDownloadedPolylines();
+
+    pols.forEach((element) {
+      setState(() {
+        _polyline.addAll(element);
+      });
+    });
+  }
+
+  fetchCloudData() async {
+    await PolyLinePoint.downloadCloudData();
+    drawCloudData();
+  }
+
   buildFloatingBox() {
     return FloatingMenuPanel(
       positionTop: 0.0, // Initial Top Position
@@ -561,7 +582,7 @@ class _MapPageState extends State<MapPage>
       panelOpenOffset:
           20.0, // Offset from the edge of screen when panel is open
       panelIcon: Icons.menu, // Panel open/close icon
-      size: 40.0, // Size of single button in the panel
+      size: MediaQuery.of(context).size.width / 7,
       iconSize: 18.0, // Size of icons
       borderWidth: 1.0, // Width of panel border
       borderColor: Colors.black, // Color of panel border

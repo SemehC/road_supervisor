@@ -152,7 +152,6 @@ class _ScanItemPageState extends State<ScanItemPage>
   }
 
   fetchJsonFileData() async {
-    print("Getting json");
     File f = File(widget.dbItem.fileLocation);
 
     String s = await f.readAsString();
