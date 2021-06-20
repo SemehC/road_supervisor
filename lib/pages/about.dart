@@ -38,7 +38,7 @@ class _AboutWidgetState extends State<AboutWidget> {
     List<CardItem> items = [
       ImageCarditem(
           image: Image.asset(
-        "assets/images/Profile1.jpg",
+        "assets/images/Profile0.jpg",
       )),
       ImageCarditem(
           image: Image.asset(
@@ -46,7 +46,7 @@ class _AboutWidgetState extends State<AboutWidget> {
       )),
       ImageCarditem(
           image: Image.asset(
-        "assets/images/Profile1.jpg",
+        "assets/images/Profile2.jpg",
       )),
     ];
 
